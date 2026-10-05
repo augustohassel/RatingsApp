@@ -66,8 +66,29 @@ export const TopicManagerView: React.FC<TopicManagerViewProps> = ({
       </div>
 
       {/* List of Topics */}
-      <div className="space-y-3">
-        {topics.map((topic) => {
+      {topics.length === 0 ? (
+        <div className="glass-card rounded-2xl p-6 border border-slate-800 text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto border border-indigo-500/20">
+            <Layers className="w-6 h-6" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-white">No tienes ningún ámbito todavía</h3>
+            <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+              Crea tu primer ámbito personalizado (ej: Trabajo, Deportes, Hábitos, Pareja) y define los criterios con sus ponderaciones.
+            </p>
+          </div>
+          <div className="pt-2">
+            <button
+              onClick={handleCreate}
+              className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-md shadow-indigo-600/30 transition-all"
+            >
+              <Plus className="w-4 h-4" /> Crear mi primer ámbito
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {topics.map((topic) => {
           const evalCount = evaluations.filter((e) => e.topicId === topic.id).length;
           const totalDefaultWeights = topic.items.reduce((s, it) => s + (it.defaultWeight || 0), 0);
 
@@ -106,15 +127,13 @@ export const TopicManagerView: React.FC<TopicManagerViewProps> = ({
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
-                  {topics.length > 1 && (
-                    <button
-                      onClick={() => handleDelete(topic.id, topic.name)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                      title="Eliminar ámbito"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
+                  <button
+                    onClick={() => handleDelete(topic.id, topic.name)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                    title="Eliminar ámbito"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 
@@ -143,6 +162,7 @@ export const TopicManagerView: React.FC<TopicManagerViewProps> = ({
           );
         })}
       </div>
+      )}
 
       {/* Modal */}
       {isModalOpen && (

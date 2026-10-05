@@ -68,8 +68,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </button>
         </div>
 
-        <div className="space-y-3">
-          {topics.map((topic) => {
+        {topics.length === 0 ? (
+          <div className="glass-card rounded-2xl p-6 border border-slate-800 text-center space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto border border-indigo-500/20">
+              <PlusCircle className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-white">No tienes ningún ámbito creado</h4>
+              <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+                Empieza creando tu primer ámbito (ej: Trabajo, Deportes, Bienestar) para comenzar tus auto-evaluaciones ponderadas.
+              </p>
+            </div>
+            <button
+              onClick={onOpenTopics}
+              className="py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center justify-center gap-2 mx-auto shadow-md shadow-indigo-600/30 transition-all"
+            >
+              <PlusCircle className="w-4 h-4" /> Crear mi primer ámbito
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {topics.map((topic) => {
             const topicEvals = latestByTopic.get(topic.id);
             const latest = topicEvals?.current;
             const previous = topicEvals?.previous;
@@ -160,6 +179,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             );
           })}
         </div>
+        )}
       </div>
 
       {/* Recent Evaluations Feed */}
