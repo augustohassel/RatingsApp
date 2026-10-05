@@ -84,3 +84,23 @@ Si cambiás de celular o querés transferir tus evaluaciones a otro dispositivo:
 5. Todas tus calificaciones históricas y ámbitos quedarán restaurados instantáneamente.
 
 También podés usar la opción **"Exportar para Excel / Google Sheets (CSV)"** si querés abrir tus datos en una planilla de cálculo para análisis propios.
+
+---
+
+## 5. ¿Cómo se Actualiza la App cuando hay una Nueva Versión? 🔄
+
+Al ser una **Progressive Web App (PWA)**, el usuario **no necesita entrar a ninguna tienda (Google Play o App Store) para actualizar**.
+
+### Cómo funciona el proceso:
+1. **Detección Automática en Segundo Plano**:
+   - RatingsApp tiene configurado `autoUpdate`. Cada vez que el usuario abre la aplicación con conexión a internet, el navegador consulta al servidor/hosting si existen archivos nuevos.
+   - Si publicaste una nueva versión, el teléfono descarga silenciosamente el nuevo código en segundo plano.
+2. **Activación de la Nueva Versión**:
+   - La próxima vez que el usuario cierre la app y la vuelva a abrir, se ejecutará automáticamente con la última versión instalada.
+   - **En Android**: Basta con cerrar la app desde la lista de aplicaciones recientes y volver a abrirla.
+   - **En iPhone (iOS)**: Deslizá hacia arriba desde la barra inferior para cerrar la app de la multitarea y volvela a abrir.
+   - **Forzar actualización inmediata**: Si está abierta en el navegador (Safari o Chrome), un simple refresco de página (`F5` o arrastrar hacia abajo) descarga y aplica la última versión en el momento.
+
+### ¿Se pierden los datos del usuario al actualizar?
+**No, nunca.** 
+Todo el historial de evaluaciones, notas y configuraciones se guarda en el almacenamiento persistente local del teléfono (**IndexedDB**). La actualización únicamente renueva la interfaz y la lógica de la aplicación (código HTML/JS/CSS), manteniendo la base de datos intacta.

@@ -28,6 +28,14 @@ export const Header: React.FC<HeaderProps> = ({ title = 'RatingsApp', subtitle }
             )}
           </div>
         </div>
+        <div className="flex items-center">
+          <span 
+            className="text-[10px] font-mono font-medium text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-700/60 shadow-sm"
+            title={`Versión instalada: v${__APP_VERSION__}`}
+          >
+            v{__APP_VERSION__}
+          </span>
+        </div>
       </div>
     </header>
   );
