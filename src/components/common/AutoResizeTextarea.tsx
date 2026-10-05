@@ -7,7 +7,7 @@ export interface AutoResizeTextareaProps
 }
 
 export const AutoResizeTextarea = forwardRef<HTMLTextAreaElement, AutoResizeTextareaProps>(
-  ({ value, onChange, minRows = 1, maxHeight, className = '', style, ...props }, ref) => {
+  ({ value, onChange, onInput, minRows = 1, maxHeight, className = '', style, ...props }, ref) => {
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
     useImperativeHandle(ref, () => textareaRef.current!);
@@ -31,6 +31,8 @@ export const AutoResizeTextarea = forwardRef<HTMLTextAreaElement, AutoResizeText
 
     useEffect(() => {
       adjustHeight();
+      const raf = requestAnimationFrame(adjustHeight);
+      return () => cancelAnimationFrame(raf);
     }, [value]);
 
     useEffect(() => {
@@ -52,13 +54,19 @@ export const AutoResizeTextarea = forwardRef<HTMLTextAreaElement, AutoResizeText
       adjustHeight();
     };
 
+    const handleInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
+      adjustHeight();
+      onInput?.(e);
+    };
+
     return (
       <textarea
         ref={textareaRef}
         value={value}
         onChange={handleChange}
+        onInput={handleInput}
         rows={minRows}
-        className={`resize-none transition-[height] duration-75 block w-full ${className}`}
+        className={`resize-none transition-[height] duration-75 block w-full whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${className}`}
         style={{ ...style }}
         {...props}
       />

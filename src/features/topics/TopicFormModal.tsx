@@ -220,12 +220,12 @@ export const TopicFormModal: React.FC<TopicFormModalProps> = ({
                     <span className="text-xs font-bold text-slate-500 tabular-nums">
                       #{idx + 1}
                     </span>
-                    <input
-                      type="text"
+                    <AutoResizeTextarea
+                      minRows={1}
                       placeholder="Nombre del criterio (ej: Salario)"
                       value={item.name}
                       onChange={(e) => handleUpdateItem(idx, 'name', e.target.value)}
-                      className="flex-1 bg-transparent text-xs font-semibold text-white focus:outline-none focus:border-b focus:border-indigo-500"
+                      className="flex-1 bg-transparent text-xs font-semibold text-white focus:outline-none focus:border-b focus:border-indigo-500 py-0.5 leading-snug"
                     />
                     <div className="flex items-center gap-1.5">
                       <span className="text-[11px] text-slate-400">Peso:</span>

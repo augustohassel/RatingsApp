@@ -241,8 +241,8 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
                     <span className="text-xs font-semibold text-slate-500 tabular-nums">
                       #{index + 1}
                     </span>
-                    <input
-                      type="text"
+                    <AutoResizeTextarea
+                      minRows={1}
                       value={item.name}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -252,7 +252,7 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
                           return copy;
                         });
                       }}
-                      className="bg-transparent text-sm font-semibold text-white focus:outline-none focus:border-b focus:border-indigo-500 flex-1"
+                      className="bg-transparent text-sm font-semibold text-white focus:outline-none focus:border-b focus:border-indigo-500 flex-1 py-0.5 leading-snug"
                     />
                     {item.explanation && (
                       <button
