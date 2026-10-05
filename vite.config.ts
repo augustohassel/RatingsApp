@@ -1,10 +1,14 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import pkg from './package.json';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   base: process.env.GITHUB_ACTIONS ? '/RatingsApp/' : './',
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version)
+  },
   plugins: [
     react(),
     VitePWA({
@@ -32,6 +36,9 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
-    allowedHosts: true
+    allowedHosts: true,
+    watch: {
+      usePolling: true
+    }
   }
 });

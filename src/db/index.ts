@@ -17,10 +17,17 @@ export class RatingsDatabase extends Dexie {
 
 export const db = new RatingsDatabase();
 
+export const INITIALIZED_KEY = 'ratingsapp_has_initialized_v1';
+
 /**
- * Initializes database with default topics if empty
+ * Initializes database with default topics if empty and first time
  */
 export async function initializeDatabase(): Promise<void> {
+  const hasInitialized = typeof window !== 'undefined' && localStorage.getItem(INITIALIZED_KEY);
+  if (hasInitialized) {
+    return;
+  }
+
   const topicCount = await db.topics.count();
   if (topicCount === 0) {
     await db.topics.bulkAdd(INITIAL_TOPICS);
@@ -76,6 +83,10 @@ export async function initializeDatabase(): Promise<void> {
       createdAt: sampleDate.getTime(),
     });
   }
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(INITIALIZED_KEY, 'true');
+  }
 }
 
 /**
@@ -112,6 +123,10 @@ export async function importBackup(jsonString: string): Promise<{ success: boole
       await db.evaluations.bulkAdd(data.evaluations);
     });
 
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(INITIALIZED_KEY, 'true');
+    }
+
     return { success: true, message: `Se importaron ${data.topics.length} temas y ${data.evaluations.length} evaluaciones.` };
   } catch (error) {
     return { success: false, message: (error as Error).message || 'Error al procesar el archivo.' };
@@ -119,12 +134,28 @@ export async function importBackup(jsonString: string): Promise<{ success: boole
 }
 
 /**
- * Reset database to default initial state
+ * Wipe all data completely and ensure it stays empty across reloads
+ */
+export async function clearAllDatabase(): Promise<void> {
+  await db.transaction('rw', db.topics, db.evaluations, async () => {
+    await db.topics.clear();
+    await db.evaluations.clear();
+  });
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(INITIALIZED_KEY, 'true');
+  }
+}
+
+/**
+ * Reset database to default initial state (restores Google Sheets templates)
  */
 export async function resetDatabase(): Promise<void> {
   await db.transaction('rw', db.topics, db.evaluations, async () => {
     await db.topics.clear();
     await db.evaluations.clear();
   });
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(INITIALIZED_KEY);
+  }
   await initializeDatabase();
 }

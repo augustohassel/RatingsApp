@@ -4,16 +4,19 @@ import confetti from 'canvas-confetti';
 import { db } from '../../db';
 import { calculateWeightedRating, RawItemInput } from '../../utils/calculator';
 import { CircularGauge } from '../../components/common/CircularGauge';
+import { AutoResizeTextarea } from '../../components/common/AutoResizeTextarea';
 import { Info, Plus, Trash2, CheckCircle2, ChevronDown, Calendar, MessageSquareQuote } from 'lucide-react';
 
 interface EvaluatorViewProps {
   initialTopicId?: string;
   onEvaluationSaved: (topicId: string) => void;
+  onOpenTopics?: () => void;
 }
 
 export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
   initialTopicId,
   onEvaluationSaved,
+  onOpenTopics,
 }) => {
   const topics = useLiveQuery(() => db.topics.toArray(), []) || [];
   const [selectedTopicId, setSelectedTopicId] = useState<string>(initialTopicId || '');
@@ -134,8 +137,26 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
 
   if (!currentTopic) {
     return (
-      <div className="p-8 text-center text-slate-400">
-        <p>No se encontraron ámbitos de evaluación.</p>
+      <div className="pb-28 max-w-md mx-auto px-4 pt-10 text-center space-y-4">
+        <div className="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto border border-indigo-500/20">
+            <Info className="w-6 h-6" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-white">No hay ámbitos disponibles para evaluar</h3>
+            <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+              Crea tu primer ámbito con sus respectivos criterios para poder iniciar una evaluación ponderada.
+            </p>
+          </div>
+          {onOpenTopics && (
+            <button
+              onClick={onOpenTopics}
+              className="py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center justify-center gap-2 mx-auto shadow-md shadow-indigo-600/30 transition-all"
+            >
+              <Plus className="w-4 h-4" /> Ir a Administrar Ámbitos
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -220,8 +241,8 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
                     <span className="text-xs font-semibold text-slate-500 tabular-nums">
                       #{index + 1}
                     </span>
-                    <input
-                      type="text"
+                    <AutoResizeTextarea
+                      minRows={1}
                       value={item.name}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -231,7 +252,7 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
                           return copy;
                         });
                       }}
-                      className="bg-transparent text-sm font-semibold text-white focus:outline-none focus:border-b focus:border-indigo-500 flex-1"
+                      className="bg-transparent text-sm font-semibold text-white focus:outline-none focus:border-b focus:border-indigo-500 flex-1 py-0.5 leading-snug"
                     />
                     {item.explanation && (
                       <button
@@ -249,8 +270,8 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
                   {/* Explanation box */}
                   {(isExpanded || !item.explanation) && (
                     <div className="mt-1.5 text-xs text-slate-400 bg-slate-900/60 rounded-lg p-2 border border-slate-800">
-                      <input
-                        type="text"
+                      <AutoResizeTextarea
+                        minRows={1}
                         placeholder="Explicación / ayuda memoria..."
                         value={item.explanation || ''}
                         onChange={(e) => {
@@ -261,7 +282,7 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
                             return copy;
                           });
                         }}
-                        className="w-full bg-transparent text-[11px] text-slate-300 focus:outline-none"
+                        className="w-full bg-transparent text-[11px] text-slate-300 placeholder-slate-500 focus:outline-none leading-relaxed"
                       />
                     </div>
                   )}
@@ -350,12 +371,12 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
           <MessageSquareQuote className="w-4 h-4 text-indigo-400" />
           Reflexiones y contexto del día (Opcional):
         </label>
-        <textarea
-          rows={3}
+        <AutoResizeTextarea
+          minRows={3}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Escribí aquí qué motivó estas notas hoy, situaciones relevantes o pensamientos..."
-          className="w-full bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+          className="w-full bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 leading-relaxed min-h-[84px]"
         />
       </div>
 

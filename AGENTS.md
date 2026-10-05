@@ -19,6 +19,8 @@ Este documento proporciona el contexto arquitectónico, técnico y de diseño pa
    - Cada evaluación en el tiempo guarda tanto los **pesos/importancia** que el usuario asignó en ese momento a cada criterio como las **notas nominales** otorgadas, permitiendo analizar qué factores influían en su estado de ánimo en esa fecha.
 4. **Desarrollo Aislado en Dev Container**:
    - El entorno oficial de desarrollo se ejecuta en Docker mediante `.devcontainer/` (Node.js 20 LTS, puerto 5173).
+5. **Control Estricto de Git (Push con Consentimiento Explícito)**:
+   - **NUNCA ejecutar `git push`** de forma autónoma ni hacia ningún repositorio o rama remota sin que el usuario haya revisado previamente los cambios y otorgado su consentimiento expreso. Todo cambio debe validarse localmente primero.
 
 ---
 
@@ -128,7 +130,16 @@ docker run --rm -v "${PWD}:/workspace" -w /workspace ratingsapp-dev npm run buil
 
 ## 6. Guía para Futuras Modificaciones
 
-- **Nuevos Ámbitos o Semillas**: Modificar [`src/db/seeds.ts`](file:///c:/Users/augus/Documents/Personal/RatingsApp/src/db/seeds.ts).
-- **Ajustes en la Fórmula**: Mantener sincronizado [`src/utils/calculator.ts`](file:///c:/Users/augus/Documents/Personal/RatingsApp/src/utils/calculator.ts) y ejecutar siempre `npm test` para validar no romper la compatibilidad con los datos históricos existentes.
-- **Base de Datos**: Si se modifica el esquema en [`src/db/index.ts`](file:///c:/Users/augus/Documents/Personal/RatingsApp/src/db/index.ts), incrementar el número de versión de Dexie (`this.version(2)...`) para aplicar migraciones limpias.
+- **Nuevos Ámbitos o Semillas**: Modificar [`src/db/seeds.ts`](file:///workspaces/RatingsApp/src/db/seeds.ts).
+- **Ajustes en la Fórmula**: Mantener sincronizado [`src/utils/calculator.ts`](file:///workspaces/RatingsApp/src/utils/calculator.ts) y ejecutar siempre `npm test` para validar no romper la compatibilidad con los datos históricos existentes.
+- **Base de Datos**: Si se modifica el esquema en [`src/db/index.ts`](file:///workspaces/RatingsApp/src/db/index.ts), incrementar el número de versión de Dexie (`this.version(2)...`) para aplicar migraciones limpias.
+- **Versión & Release**:
+  - El número de versión se gestiona centralizadamente en `package.json` y se inyecta en el cliente mediante Vite (`__APP_VERSION__`).
+  - La versión está visible en la esquina superior del `Header` y en el pie de `Ajustes`.
+  - **Flujo de Release (SemVer)**:
+    1. En la rama `dev`, antes de crear el Pull Request, podés incrementar la versión con la tarea de VS Code (*Release: Incrementar Versión en package.json*) o ejecutando `npm version <patch|minor|major> --no-git-tag-version`.
+    2. Al abrir el Pull Request y mergearlo a `master`, el workflow de GitHub Actions ([`.github/workflows/deploy.yml`](file:///workspaces/RatingsApp/.github/workflows/deploy.yml)) se ejecuta automáticamente:
+       - Compila y prueba la aplicación.
+       - Despliega a GitHub Pages.
+       - Lee la versión de `package.json`, crea el tag correspondiente (`vX.Y.Z`) y publica el GitHub Release con el detalle del PR mergeado.
 - **Estética & Mobile**: Priorizar siempre interfaces accesibles con el pulgar (*thumb-friendly*), fuentes legibles y respuestas visuales fluidas.

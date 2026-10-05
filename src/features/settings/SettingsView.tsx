@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, exportBackup, importBackup, resetDatabase } from '../../db';
+import { db, exportBackup, importBackup, resetDatabase, clearAllDatabase } from '../../db';
 import {
   Download,
   Upload,
@@ -102,14 +102,14 @@ export const SettingsView: React.FC = () => {
   const handleClearAll = async () => {
     if (
       confirm(
-        '¡ATENCIÓN! ¿Estás seguro de que deseas eliminar TODOS los datos locales? Esta acción es irreversible.'
+        '¡ATENCIÓN! ¿Estás seguro de que deseas eliminar TODOS los datos locales? Esta acción dejará la aplicación en blanco para que puedas armar tus ámbitos y criterios de cero.'
       )
     ) {
-      await db.transaction('rw', db.topics, db.evaluations, async () => {
-        await db.topics.clear();
-        await db.evaluations.clear();
+      await clearAllDatabase();
+      setMessage({
+        type: 'success',
+        text: 'Se han eliminado todos los datos. La aplicación está lista para crear todo desde cero.',
       });
-      setMessage({ type: 'success', text: 'Se han eliminado todos los datos locales.' });
     }
   };
 
@@ -257,6 +257,13 @@ export const SettingsView: React.FC = () => {
         <h4 className="text-xs font-bold text-white">Privacidad 100% Garantizada</h4>
         <p className="text-[11px] text-slate-400 leading-relaxed">
           Esta aplicación opera de forma totalmente local en tu dispositivo mediante IndexedDB. Ningún dato se envía ni se almacena en ningún servidor.
+        </p>
+      </div>
+
+      {/* App Version Info */}
+      <div className="pt-2 pb-6 text-center">
+        <p className="text-[11px] font-mono text-slate-500">
+          RatingsApp <span className="text-slate-400 font-semibold">v{__APP_VERSION__}</span> • PWA Local
         </p>
       </div>
     </div>

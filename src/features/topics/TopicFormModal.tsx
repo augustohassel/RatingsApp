@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Topic, TopicItemDefinition } from '../../types';
 import { db } from '../../db';
+import { AutoResizeTextarea } from '../../components/common/AutoResizeTextarea';
 import { X, Plus, Trash2, Check, Sparkles, Briefcase, Activity, Heart, Target, BookOpen, Smile } from 'lucide-react';
 
 interface TopicFormModalProps {
@@ -130,12 +131,12 @@ export const TopicFormModal: React.FC<TopicFormModalProps> = ({
               <label className="text-xs font-semibold text-slate-300 block mb-1">
                 Descripción (opcional)
               </label>
-              <input
-                type="text"
+              <AutoResizeTextarea
+                minRows={1}
                 placeholder="Breve propósito o notas..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 leading-relaxed"
               />
             </div>
 
@@ -219,12 +220,12 @@ export const TopicFormModal: React.FC<TopicFormModalProps> = ({
                     <span className="text-xs font-bold text-slate-500 tabular-nums">
                       #{idx + 1}
                     </span>
-                    <input
-                      type="text"
+                    <AutoResizeTextarea
+                      minRows={1}
                       placeholder="Nombre del criterio (ej: Salario)"
                       value={item.name}
                       onChange={(e) => handleUpdateItem(idx, 'name', e.target.value)}
-                      className="flex-1 bg-transparent text-xs font-semibold text-white focus:outline-none focus:border-b focus:border-indigo-500"
+                      className="flex-1 bg-transparent text-xs font-semibold text-white focus:outline-none focus:border-b focus:border-indigo-500 py-0.5 leading-snug"
                     />
                     <div className="flex items-center gap-1.5">
                       <span className="text-[11px] text-slate-400">Peso:</span>
@@ -249,12 +250,12 @@ export const TopicFormModal: React.FC<TopicFormModalProps> = ({
                       </button>
                     )}
                   </div>
-                  <input
-                    type="text"
+                  <AutoResizeTextarea
+                    minRows={1}
                     placeholder="Explicación / ayuda memoria (ej: Comparativa con el mercado)"
                     value={item.explanation || ''}
                     onChange={(e) => handleUpdateItem(idx, 'explanation', e.target.value)}
-                    className="w-full bg-slate-950/50 border border-slate-800/80 rounded-lg px-2.5 py-1 text-[11px] text-slate-300 placeholder-slate-600 focus:outline-none"
+                    className="w-full bg-slate-950/50 border border-slate-800/80 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 leading-relaxed"
                   />
                 </div>
               ))}
