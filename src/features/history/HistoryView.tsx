@@ -239,7 +239,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     </div>
 
                     {evalEntry.notes ? (
-                      <p className="text-xs text-slate-300 italic truncate mt-1">
+                      <p className="text-xs text-slate-300 italic whitespace-pre-wrap break-words mt-1 leading-relaxed">
                         "{evalEntry.notes}"
                       </p>
                     ) : (

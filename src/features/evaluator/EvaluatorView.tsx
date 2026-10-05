@@ -4,6 +4,7 @@ import confetti from 'canvas-confetti';
 import { db } from '../../db';
 import { calculateWeightedRating, RawItemInput } from '../../utils/calculator';
 import { CircularGauge } from '../../components/common/CircularGauge';
+import { AutoResizeTextarea } from '../../components/common/AutoResizeTextarea';
 import { Info, Plus, Trash2, CheckCircle2, ChevronDown, Calendar, MessageSquareQuote } from 'lucide-react';
 
 interface EvaluatorViewProps {
@@ -269,8 +270,8 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
                   {/* Explanation box */}
                   {(isExpanded || !item.explanation) && (
                     <div className="mt-1.5 text-xs text-slate-400 bg-slate-900/60 rounded-lg p-2 border border-slate-800">
-                      <input
-                        type="text"
+                      <AutoResizeTextarea
+                        minRows={1}
                         placeholder="Explicación / ayuda memoria..."
                         value={item.explanation || ''}
                         onChange={(e) => {
@@ -281,7 +282,7 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
                             return copy;
                           });
                         }}
-                        className="w-full bg-transparent text-[11px] text-slate-300 focus:outline-none"
+                        className="w-full bg-transparent text-[11px] text-slate-300 placeholder-slate-500 focus:outline-none leading-relaxed"
                       />
                     </div>
                   )}
@@ -370,12 +371,12 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
           <MessageSquareQuote className="w-4 h-4 text-indigo-400" />
           Reflexiones y contexto del día (Opcional):
         </label>
-        <textarea
-          rows={3}
+        <AutoResizeTextarea
+          minRows={3}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Escribí aquí qué motivó estas notas hoy, situaciones relevantes o pensamientos..."
-          className="w-full bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+          className="w-full bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 leading-relaxed min-h-[84px]"
         />
       </div>
 

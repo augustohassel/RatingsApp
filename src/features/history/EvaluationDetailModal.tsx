@@ -70,7 +70,7 @@ export const EvaluationDetailModal: React.FC<EvaluationDetailModalProps> = ({
                 <MessageSquare className="w-3.5 h-3.5" />
                 <span>Reflexiones de este día</span>
               </div>
-              <p className="text-xs text-slate-300 italic leading-relaxed">
+              <p className="text-xs text-slate-300 italic leading-relaxed whitespace-pre-wrap break-words">
                 "{evaluation.notes}"
               </p>
             </div>
@@ -94,9 +94,9 @@ export const EvaluationDetailModal: React.FC<EvaluationDetailModalProps> = ({
                   className="bg-slate-900/50 hover:bg-slate-900 border border-slate-800/80 rounded-xl p-3 flex items-center justify-between gap-3 text-xs"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-white truncate">{item.name}</p>
+                    <p className="font-semibold text-white break-words">{item.name}</p>
                     {item.explanation && (
-                      <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                      <p className="text-[11px] text-slate-400 break-words leading-normal mt-0.5">
                         {item.explanation}
                       </p>
                     )}
