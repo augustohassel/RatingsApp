@@ -4,6 +4,9 @@
     "dockerfile": "Dockerfile"
   },
   "workspaceFolder": "/workspaces/RatingsApp",
+  "mounts": [
+    "source=${localEnv:USERPROFILE}/Documents/Personal/AgentToolkit/plugins,target=/root/.gemini/config/plugins,type=bind,consistency=cached"
+  ],
   "forwardPorts": [5173],
   "portsAttributes": {
     "5173": {
