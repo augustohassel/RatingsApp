@@ -1,6 +1,26 @@
-import { Topic } from '../types';
+import { Topic, DAILY_MOOD_TOPIC_ID } from '../types';
+
+export const DAILY_MOOD_TOPIC: Topic = {
+  id: DAILY_MOOD_TOPIC_ID,
+  name: 'Sensación Diaria',
+  description: 'Registro rápido del estado de ánimo y bienestar general (1 al 10).',
+  color: '#ec4899', // Pink / Rose moderno
+  icon: 'Smile',
+  isSystem: true,
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
+  items: [
+    {
+      id: 'dm-1',
+      name: 'Sensación general',
+      explanation: '¿Cómo te sentís en general hoy? (1 al 10)',
+      defaultWeight: 10,
+    },
+  ],
+};
 
 export const INITIAL_TOPICS: Topic[] = [
+  DAILY_MOOD_TOPIC,
   {
     id: 'topic-work',
     name: 'Trabajo / Laboral',

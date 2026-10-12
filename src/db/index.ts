@@ -1,6 +1,6 @@
 import Dexie, { Table } from 'dexie';
 import { Topic, EvaluationEntry, BackupData } from '../types';
-import { INITIAL_TOPICS } from './seeds';
+import { INITIAL_TOPICS, DAILY_MOOD_TOPIC } from './seeds';
 
 export class RatingsDatabase extends Dexie {
   topics!: Table<Topic, string>;
@@ -25,6 +25,10 @@ export const INITIALIZED_KEY = 'ratingsapp_has_initialized_v1';
 export async function initializeDatabase(): Promise<void> {
   const hasInitialized = typeof window !== 'undefined' && localStorage.getItem(INITIALIZED_KEY);
   if (hasInitialized) {
+    const dailyMoodExists = await db.topics.get(DAILY_MOOD_TOPIC.id);
+    if (!dailyMoodExists) {
+      await db.topics.add(DAILY_MOOD_TOPIC);
+    }
     return;
   }
 
@@ -33,8 +37,9 @@ export async function initializeDatabase(): Promise<void> {
     await db.topics.bulkAdd(INITIAL_TOPICS);
 
     // Add a sample initial evaluation for Trabajo so the user immediately sees charts and history
-    const workTopic = INITIAL_TOPICS[0];
+    const workTopic = INITIAL_TOPICS.find((t) => t.id === 'topic-work') || INITIAL_TOPICS[1];
     const initialItems = workTopic.items.map((it) => {
+
       // Nominal values matching the user's sample Google Sheet
       const sampleScores: Record<string, number> = {
         'w-1': 8,

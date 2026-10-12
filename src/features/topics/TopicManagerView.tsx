@@ -3,7 +3,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { Topic } from '../../types';
 import { TopicFormModal } from './TopicFormModal';
-import { Plus, Edit2, Trash2, Layers, Briefcase, Activity, CheckCircle2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Layers, Briefcase, Activity, Smile, CheckCircle2, Shield } from 'lucide-react';
+import { DAILY_MOOD_TOPIC_ID } from '../../types';
 
 interface TopicManagerViewProps {
   onSelectTopicToEvaluate: (topicId: string) => void;
@@ -105,14 +106,23 @@ export const TopicManagerView: React.FC<TopicManagerViewProps> = ({
                   >
                     {topic.icon === 'Waves' ? (
                       <Activity className="w-5 h-5" />
+                    ) : topic.icon === 'Smile' ? (
+                      <Smile className="w-5 h-5" />
                     ) : (
                       <Briefcase className="w-5 h-5" />
                     )}
                   </div>
                   <div>
-                    <h3 className="font-bold text-white text-base leading-tight">
-                      {topic.name}
-                    </h3>
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="font-bold text-white text-base leading-tight">
+                        {topic.name}
+                      </h3>
+                      {(topic.isSystem || topic.id === DAILY_MOOD_TOPIC_ID) && (
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-pink-500/20 text-pink-300 font-semibold border border-pink-500/30 flex items-center gap-0.5">
+                          <Shield className="w-2.5 h-2.5" /> Sistema
+                        </span>
+                      )}
+                    </div>
                     {topic.description && (
                       <p className="text-xs text-slate-400 mt-0.5">{topic.description}</p>
                     )}
@@ -127,15 +137,18 @@ export const TopicManagerView: React.FC<TopicManagerViewProps> = ({
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
-                  <button
-                    onClick={() => handleDelete(topic.id, topic.name)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                    title="Eliminar ámbito"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {!(topic.isSystem || topic.id === DAILY_MOOD_TOPIC_ID) && (
+                    <button
+                      onClick={() => handleDelete(topic.id, topic.name)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                      title="Eliminar ámbito"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
+
 
               {/* Badges / Stats */}
               <div className="flex items-center gap-2 text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">

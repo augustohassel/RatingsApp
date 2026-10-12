@@ -51,11 +51,16 @@ export const SettingsView: React.FC = () => {
         const dateStr = new Date(ev.date).toLocaleDateString('es-ES');
         const cleanNotes = (ev.notes || '').replace(/"/g, '""');
 
-        for (const it of ev.items) {
-          const cleanExplanation = (it.explanation || '').replace(/"/g, '""');
-          csv += `"${dateStr}","${topicName}","${ev.finalScore.toFixed(2)}","${ev.totalWeight}","${cleanNotes}","${it.name}","${cleanExplanation}","${it.weight}","${it.percentage}%","${it.score}","${it.contribution.toFixed(2)}"\n`;
+        if (!ev.items || ev.items.length === 0) {
+          csv += `"${dateStr}","${topicName}","${ev.finalScore.toFixed(2)}","${ev.totalWeight}","${cleanNotes}","Sensación general","","10","100%","${ev.finalScore}","${ev.finalScore.toFixed(2)}"\n`;
+        } else {
+          for (const it of ev.items) {
+            const cleanExplanation = (it.explanation || '').replace(/"/g, '""');
+            csv += `"${dateStr}","${topicName}","${ev.finalScore.toFixed(2)}","${ev.totalWeight}","${cleanNotes}","${it.name}","${cleanExplanation}","${it.weight}","${it.percentage}%","${it.score}","${it.contribution.toFixed(2)}"\n`;
+          }
         }
       }
+
 
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);

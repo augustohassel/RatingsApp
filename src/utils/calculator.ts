@@ -1,4 +1,9 @@
-import { EvaluationItemValue } from '../types';
+import {
+  EvaluationItemValue,
+  EvaluationEntry,
+  DailyAggregatedScore,
+  MonthlyAverage,
+} from '../types';
 
 export interface RawItemInput {
   itemId: string;
@@ -118,3 +123,165 @@ export function getScoreColor(score: number): {
     gradient: 'from-rose-500 to-red-400',
   };
 }
+
+export const MONTH_NAMES_ES = [
+  'Ene',
+  'Feb',
+  'Mar',
+  'Abr',
+  'May',
+  'Jun',
+  'Jul',
+  'Ago',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dic',
+];
+
+/**
+ * Format any date input into YYYY-MM-DD using local timezone
+ */
+export function toLocalDateString(dateInput: string | Date | number): string {
+  const d = new Date(dateInput);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Aggregates evaluations by day, computing the arithmetic mean for multiple entries on the same day.
+ * Preserves all original entries, exact timestamps, and notes.
+ */
+export function aggregateDailyScores(evaluations: EvaluationEntry[]): DailyAggregatedScore[] {
+  const map = new Map<string, EvaluationEntry[]>();
+
+  for (const entry of evaluations) {
+    const key = toLocalDateString(entry.date);
+    const existing = map.get(key);
+    if (existing) {
+      existing.push(entry);
+    } else {
+      map.set(key, [entry]);
+    }
+  }
+
+  const result: DailyAggregatedScore[] = [];
+
+  for (const [dateStr, entries] of map.entries()) {
+    entries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const firstDate = new Date(entries[0].date);
+    const scores = entries.map((e) => e.finalScore);
+    const sum = scores.reduce((a, b) => a + b, 0);
+    const averageScore = Math.round((sum / scores.length) * 100) / 100;
+    const notes = entries
+      .map((e) => e.notes?.trim())
+      .filter((n): n is string => Boolean(n));
+
+    result.push({
+      dateStr,
+      date: firstDate,
+      day: firstDate.getDate(),
+      month: firstDate.getMonth(),
+      year: firstDate.getFullYear(),
+      averageScore,
+      count: entries.length,
+      entries,
+      notes,
+    });
+  }
+
+  return result.sort((a, b) => a.dateStr.localeCompare(b.dateStr));
+}
+
+/**
+ * Computes monthly averages (0 = Ene, ..., 11 = Dic) for a given year based on daily aggregated scores.
+ */
+export function calculateMonthlyAverages(
+  dailyAggregations: DailyAggregatedScore[],
+  year: number
+): MonthlyAverage[] {
+  const yearDailyScores = dailyAggregations.filter((d) => d.year === year);
+
+  return MONTH_NAMES_ES.map((monthName, monthIndex) => {
+    const monthDays = yearDailyScores.filter((d) => d.month === monthIndex);
+    if (monthDays.length === 0) {
+      return {
+        monthIndex,
+        monthName,
+        averageScore: null,
+        count: 0,
+      };
+    }
+
+    const sumDailyScores = monthDays.reduce((sum, d) => sum + d.averageScore, 0);
+    const averageScore = Math.round((sumDailyScores / monthDays.length) * 100) / 100;
+
+    return {
+      monthIndex,
+      monthName,
+      averageScore,
+      count: monthDays.length,
+    };
+  });
+}
+
+/**
+ * Returns thermal heatmap color styling for Mood Wrapped cells
+ */
+export function getMoodHeatmapColor(score: number | null): {
+  bg: string;
+  text: string;
+  border: string;
+  hex: string;
+} {
+  if (score === null || score === undefined) {
+    return {
+      bg: 'bg-slate-900/40',
+      text: 'text-slate-600',
+      border: 'border-slate-800/40',
+      hex: '#0f172a',
+    };
+  }
+
+  if (score >= 8.5) {
+    return {
+      bg: 'bg-emerald-500',
+      text: 'text-white font-bold',
+      border: 'border-emerald-400',
+      hex: '#10b981',
+    };
+  }
+  if (score >= 7.0) {
+    return {
+      bg: 'bg-emerald-600/90',
+      text: 'text-white font-semibold',
+      border: 'border-emerald-500',
+      hex: '#059669',
+    };
+  }
+  if (score >= 5.5) {
+    return {
+      bg: 'bg-amber-500',
+      text: 'text-slate-950 font-bold',
+      border: 'border-amber-400',
+      hex: '#f59e0b',
+    };
+  }
+  if (score >= 4.0) {
+    return {
+      bg: 'bg-orange-500',
+      text: 'text-white font-semibold',
+      border: 'border-orange-400',
+      hex: '#f97316',
+    };
+  }
+  return {
+    bg: 'bg-rose-500',
+    text: 'text-white font-bold',
+    border: 'border-rose-400',
+    hex: '#f43f5e',
+  };
+}
+
