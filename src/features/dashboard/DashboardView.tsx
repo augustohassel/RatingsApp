@@ -1,13 +1,25 @@
 import React from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
-import { EvaluationEntry } from '../../types';
+import { EvaluationEntry, DAILY_MOOD_TOPIC_ID } from '../../types';
 import { ScoreBadge } from '../../components/common/ScoreBadge';
-import { PlusCircle, TrendingUp, TrendingDown, Minus, Briefcase, Activity, Calendar, ArrowRight, Sparkles } from 'lucide-react';
+import { QuickCheckInCard } from './QuickCheckInCard';
+import {
+  PlusCircle,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Briefcase,
+  Activity,
+  Smile,
+  Calendar,
+  ArrowRight,
+  Sparkles,
+} from 'lucide-react';
 
 interface DashboardViewProps {
   onStartEvaluation: (topicId: string) => void;
-  onViewHistory: (topicId?: string) => void;
+  onViewHistory: (topicId?: string, mode?: 'timeline' | 'matrix') => void;
   onOpenTopics: () => void;
 }
 
@@ -19,10 +31,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const topics = useLiveQuery(() => db.topics.toArray(), []) || [];
   const evaluations = useLiveQuery(() => db.evaluations.orderBy('createdAt').reverse().toArray(), []) || [];
 
+  const customTopics = React.useMemo(() => {
+    return topics.filter((t) => t.id !== DAILY_MOOD_TOPIC_ID);
+  }, [topics]);
+
   // Group latest evaluations by topic
   const latestByTopic = React.useMemo(() => {
     const map = new Map<string, { current: EvaluationEntry; previous?: EvaluationEntry }>();
     for (const evalItem of evaluations) {
+
       if (!map.has(evalItem.topicId)) {
         map.set(evalItem.topicId, { current: evalItem });
       } else {
@@ -54,6 +71,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
+      {/* Quick Check-in Daily Mood Card */}
+      <QuickCheckInCard
+        onViewMoodWrapped={() => onViewHistory(DAILY_MOOD_TOPIC_ID, 'matrix')}
+        onViewHistory={(topicId) => onViewHistory(topicId, 'timeline')}
+      />
+
       {/* Topics Overview */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -64,11 +87,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             onClick={onOpenTopics}
             className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
           >
-            Administrar ({topics.length})
+            Administrar ({customTopics.length})
           </button>
         </div>
 
-        {topics.length === 0 ? (
+        {customTopics.length === 0 ? (
           <div className="glass-card rounded-2xl p-6 border border-slate-800 text-center space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto border border-indigo-500/20">
               <PlusCircle className="w-6 h-6" />
@@ -88,33 +111,36 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         ) : (
           <div className="space-y-3">
-            {topics.map((topic) => {
-            const topicEvals = latestByTopic.get(topic.id);
-            const latest = topicEvals?.current;
-            const previous = topicEvals?.previous;
+            {customTopics.map((topic) => {
+              const topicEvals = latestByTopic.get(topic.id);
+              const latest = topicEvals?.current;
+              const previous = topicEvals?.previous;
 
-            let diff = 0;
-            if (latest && previous) {
-              diff = Math.round((latest.finalScore - previous.finalScore) * 100) / 100;
-            }
+              let diff = 0;
+              if (latest && previous) {
+                diff = Math.round((latest.finalScore - previous.finalScore) * 100) / 100;
+              }
 
-            return (
-              <div
-                key={topic.id}
-                className="glass-card rounded-2xl p-4 border border-slate-800 hover:border-slate-700/80 transition-all duration-200"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-md"
-                      style={{ backgroundColor: topic.color || '#6366f1' }}
-                    >
-                      {topic.icon === 'Waves' ? (
-                        <Activity className="w-5 h-5" />
-                      ) : (
-                        <Briefcase className="w-5 h-5" />
-                      )}
-                    </div>
+              return (
+                <div
+                  key={topic.id}
+                  className="glass-card rounded-2xl p-4 border border-slate-800 hover:border-slate-700/80 transition-all duration-200"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-md"
+                        style={{ backgroundColor: topic.color || '#6366f1' }}
+                      >
+                        {topic.icon === 'Waves' ? (
+                          <Activity className="w-5 h-5" />
+                        ) : topic.icon === 'Smile' ? (
+                          <Smile className="w-5 h-5" />
+                        ) : (
+                          <Briefcase className="w-5 h-5" />
+                        )}
+                      </div>
+
                     <div>
                       <h4 className="font-semibold text-white text-base leading-tight">
                         {topic.name}
