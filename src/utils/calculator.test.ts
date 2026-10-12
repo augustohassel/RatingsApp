@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { calculateWeightedRating } from './calculator';
+import {
+  calculateWeightedRating,
+  aggregateDailyScores,
+  calculateMonthlyAverages,
+} from './calculator';
+
 
 describe('calculateWeightedRating', () => {
   it('correctly calculates the exact 14 categories from the Google Sheet example', () => {
@@ -49,3 +54,126 @@ describe('calculateWeightedRating', () => {
     expect(result.finalScore).toBe(0);
   });
 });
+
+describe('aggregateDailyScores', () => {
+  it('correctly aggregates multiple evaluations on the same day into an arithmetic average', () => {
+    const evals = [
+      {
+        id: 'eval-1',
+        topicId: 'topic-daily-mood',
+        date: '2026-10-12T09:00:00.000Z',
+        items: [],
+        totalWeight: 10,
+        finalScore: 7,
+        notes: 'Mañana tranquila',
+        createdAt: 1000,
+      },
+      {
+        id: 'eval-2',
+        topicId: 'topic-daily-mood',
+        date: '2026-10-12T20:30:00.000Z',
+        items: [],
+        totalWeight: 10,
+        finalScore: 8,
+        notes: 'Buena tarde de entrenamiento',
+        createdAt: 2000,
+      },
+    ];
+
+    const aggregated = aggregateDailyScores(evals);
+    expect(aggregated).toHaveLength(1);
+    expect(aggregated[0].averageScore).toBe(7.5);
+    expect(aggregated[0].count).toBe(2);
+    expect(aggregated[0].entries).toHaveLength(2);
+    expect(aggregated[0].notes).toEqual(['Mañana tranquila', 'Buena tarde de entrenamiento']);
+  });
+
+  it('handles multiple distinct dates and sorts them chronologically', () => {
+    const evals = [
+      {
+        id: 'eval-2',
+        topicId: 'topic-daily-mood',
+        date: '2026-10-14T10:00:00.000Z',
+        items: [],
+        totalWeight: 10,
+        finalScore: 9,
+        createdAt: 2000,
+      },
+      {
+        id: 'eval-1',
+        topicId: 'topic-daily-mood',
+        date: '2026-10-10T08:00:00.000Z',
+        items: [],
+        totalWeight: 10,
+        finalScore: 6,
+        createdAt: 1000,
+      },
+    ];
+
+    const aggregated = aggregateDailyScores(evals);
+    expect(aggregated).toHaveLength(2);
+    expect(aggregated[0].dateStr).toBe('2026-10-10');
+    expect(aggregated[0].averageScore).toBe(6);
+    expect(aggregated[1].dateStr).toBe('2026-10-14');
+    expect(aggregated[1].averageScore).toBe(9);
+  });
+});
+
+describe('calculateMonthlyAverages', () => {
+  it('computes 12 monthly averages and handles months with and without data', () => {
+    const dailyScores = [
+      {
+        dateStr: '2026-01-05',
+        date: new Date(2026, 0, 5),
+        day: 5,
+        month: 0, // Enero
+        year: 2026,
+        averageScore: 8,
+        count: 1,
+        entries: [],
+        notes: [],
+      },
+      {
+        dateStr: '2026-01-20',
+        date: new Date(2026, 0, 20),
+        day: 20,
+        month: 0, // Enero
+        year: 2026,
+        averageScore: 6,
+        count: 1,
+        entries: [],
+        notes: [],
+      },
+      {
+        dateStr: '2026-02-14',
+        date: new Date(2026, 1, 14),
+        day: 14,
+        month: 1, // Febrero
+        year: 2026,
+        averageScore: 9.5,
+        count: 1,
+        entries: [],
+        notes: [],
+      },
+    ];
+
+    const monthly = calculateMonthlyAverages(dailyScores, 2026);
+    expect(monthly).toHaveLength(12);
+
+    // Enero: (8 + 6) / 2 = 7.00
+    expect(monthly[0].monthName).toBe('Ene');
+    expect(monthly[0].averageScore).toBe(7.0);
+    expect(monthly[0].count).toBe(2);
+
+    // Febrero: 9.50
+    expect(monthly[1].monthName).toBe('Feb');
+    expect(monthly[1].averageScore).toBe(9.5);
+    expect(monthly[1].count).toBe(1);
+
+    // Marzo (sin datos): null
+    expect(monthly[2].monthName).toBe('Mar');
+    expect(monthly[2].averageScore).toBeNull();
+    expect(monthly[2].count).toBe(0);
+  });
+});
+
