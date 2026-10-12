@@ -11,6 +11,7 @@ import { SettingsView } from './features/settings/SettingsView';
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
   const [activeTopicId, setActiveTopicId] = useState<string | undefined>(undefined);
+  const [historyViewMode, setHistoryViewMode] = useState<'timeline' | 'matrix'>('timeline');
   const [isDbReady, setIsDbReady] = useState(false);
 
   useEffect(() => {
@@ -24,15 +25,18 @@ export const App: React.FC = () => {
     setCurrentTab('evaluator');
   };
 
-  const handleViewHistory = (topicId?: string) => {
+  const handleViewHistory = (topicId?: string, mode: 'timeline' | 'matrix' = 'timeline') => {
     setActiveTopicId(topicId);
+    setHistoryViewMode(mode);
     setCurrentTab('history');
   };
 
   const handleEvaluationSaved = (topicId: string) => {
     setActiveTopicId(topicId);
+    setHistoryViewMode('timeline');
     setCurrentTab('history');
   };
+
 
   if (!isDbReady) {
     return (
@@ -66,9 +70,11 @@ export const App: React.FC = () => {
         {currentTab === 'history' && (
           <HistoryView
             initialTopicId={activeTopicId}
+            initialViewMode={historyViewMode}
             onNewEvaluation={handleStartEvaluation}
           />
         )}
+
 
         {currentTab === 'topics' && (
           <TopicManagerView

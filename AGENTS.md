@@ -12,19 +12,45 @@ Este documento proporciona el contexto arquitectónico, técnico y de diseño pa
 1. **Privacidad Absoluta (Zero-Backend)**: 
    - El 100% de los datos generados por el usuario reside exclusivamente en el almacenamiento local del navegador del dispositivo (IndexedDB mediante Dexie.js).
    - **Bajo ninguna circunstancia** se deben enviar datos de evaluaciones a servidores externos ni APIs de telemetría de terceros.
+   - Nunca incluir credenciales, secretos, API keys o tokens en el código fuente, commits o issues.
 2. **Offline-First & PWA**:
    - La aplicación debe ser instalable en la pantalla de inicio en iOS y Android.
    - Todo el bundle de assets, estilos y base de datos debe ser operativo sin conexión a internet.
 3. **Ponderaciones Dinámicas**:
    - Cada evaluación en el tiempo guarda tanto los **pesos/importancia** que el usuario asignó en ese momento a cada criterio como las **notas nominales** otorgadas, permitiendo analizar qué factores influían en su estado de ánimo en esa fecha.
-4. **Desarrollo Aislado en Dev Container**:
-   - El entorno oficial de desarrollo se ejecuta en Docker mediante `.devcontainer/` (Node.js 20 LTS, puerto 5173).
-5. **Control Estricto de Git (Push con Consentimiento Explícito)**:
-   - **NUNCA ejecutar `git push`** de forma autónoma ni hacia ningún repositorio o rama remota sin que el usuario haya revisado previamente los cambios y otorgado su consentimiento expreso. Todo cambio debe validarse localmente primero.
+4. **Entorno Oficial en Dev Container**:
+   - El entorno oficial de desarrollo se ejecuta en Docker mediante `.devcontainer/` (Node.js 20 LTS en Debian Bookworm, puerto 5173).
 
 ---
 
-## 2. Stack Tecnológico
+## 2. Reglas de Git, Calidad y Flujo de Trabajo
+
+Todo agente que opere en este repositorio debe cumplir estrictamente las siguientes reglas:
+
+1. **Validación Local Primero**:
+   - Todo cambio de código debe compilarse y validarse localmente mediante tests automáticos (`npm test`) y build (`npm run build`) antes de considerarse completo o finalizado.
+2. **Prohibición Estricta de Git Push Automático**:
+   - El agente tiene estrictamente prohibido ejecutar `git push` hacia cualquier repositorio o rama remota sin la aprobación previa y explícita del usuario.
+3. **Estrategia de Ramas e Issues**:
+   - **Rama base de desarrollo**: `dev`.
+   - **Ramas de tareas**: Toda tarea o corrección se realiza en una rama nombrada `issue/<n>`, donde `<n>` es el número del issue.
+   - **Origen estricto**: La rama `issue/<n>` se crea **siempre a partir de `dev`**:
+     ```bash
+     git checkout dev && git pull origin dev && git checkout -b issue/<n>
+     ```
+     Nunca crear ramas de desarrollo a partir de `master` ni de otras ramas de trabajo.
+   - **Pull Requests**: Se orientan e integran siempre hacia `dev`. Al completarse el merge, la rama `issue/<n>` se elimina.
+4. **Commits Claros y Atómicos**:
+   - Utilizar la convención de [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`).
+5. **Ciclo Operativo de Agentes**:
+   - El trabajo asistido por agentes sigue el ciclo:
+     1. `crear-issue`: Definir el requerimiento con criterios de aceptación.
+     2. `trabajar-issue`: Crear rama `issue/<n>` desde `dev`, implementar, validar con tests/build.
+     3. `cerrar-issue`: Revisar PR hacia `dev`, actualizar versión/changelog si corresponde y limpiar ramas.
+
+---
+
+## 3. Stack Tecnológico
 
 - **Runtime & Bundler**: Node.js 20 LTS + Vite 6
 - **Framework UI**: React 18 + TypeScript (Strict mode)
@@ -34,10 +60,11 @@ Este documento proporciona el contexto arquitectónico, técnico y de diseño pa
 - **Gráficos & Visualización**: `recharts` (AreaChart y LineChart interactivos)
 - **Iconos**: `lucide-react`
 - **Testing**: `vitest`
+- **Herramientas de Código**: Prettier (`esbenp.prettier-vscode`), ESLint (`dbaeumer.vscode-eslint`)
 
 ---
 
-## 3. Modelo Matemático de Calificación
+## 4. Modelo Matemático de Calificación
 
 El cálculo replica fielmente la lógica de ponderación estándar de la planilla de referencia del usuario:
 
@@ -50,7 +77,7 @@ $$\text{Nota Final} = \sum_{i=1}^n \text{Aporte Ponderado}_i = \frac{\sum_{i=1}^
 
 ---
 
-## 4. Estructura de Directorios
+## 5. Estructura de Directorios
 
 ```
 RatingsApp/
@@ -97,7 +124,7 @@ RatingsApp/
 
 ---
 
-## 5. Comandos de Desarrollo
+## 6. Comandos de Desarrollo
 
 ### Dentro del Dev Container (o entorno con Node.js):
 ```bash
@@ -107,7 +134,7 @@ npm run dev
 # Ejecutar tests unitarios
 npm test
 
-# Compilación de producción
+# Compilación de producción y verificación de tipos TypeScript
 npm run build
 
 # Previsualizar bundle de producción
@@ -128,7 +155,7 @@ docker run --rm -v "${PWD}:/workspace" -w /workspace ratingsapp-dev npm run buil
 
 ---
 
-## 6. Guía para Futuras Modificaciones
+## 7. Guía para Futuras Modificaciones
 
 - **Nuevos Ámbitos o Semillas**: Modificar [`src/db/seeds.ts`](file:///workspaces/RatingsApp/src/db/seeds.ts).
 - **Ajustes en la Fórmula**: Mantener sincronizado [`src/utils/calculator.ts`](file:///workspaces/RatingsApp/src/utils/calculator.ts) y ejecutar siempre `npm test` para validar no romper la compatibilidad con los datos históricos existentes.
@@ -137,8 +164,8 @@ docker run --rm -v "${PWD}:/workspace" -w /workspace ratingsapp-dev npm run buil
   - El número de versión se gestiona centralizadamente en `package.json` y se inyecta en el cliente mediante Vite (`__APP_VERSION__`).
   - La versión está visible en la esquina superior del `Header` y en el pie de `Ajustes`.
   - **Flujo de Release (SemVer)**:
-    1. En la rama `dev`, antes de crear el Pull Request, podés incrementar la versión con la tarea de VS Code (*Release: Incrementar Versión en package.json*) o ejecutando `npm version <patch|minor|major> --no-git-tag-version`.
-    2. Al abrir el Pull Request y mergearlo a `master`, el workflow de GitHub Actions ([`.github/workflows/deploy.yml`](file:///workspaces/RatingsApp/.github/workflows/deploy.yml)) se ejecuta automáticamente:
+    1. En la rama `dev`, antes de crear el Pull Request de release, incrementar la versión con la tarea de VS Code (*Release: Incrementar Versión en package.json*) o ejecutando `npm version <patch|minor|major> --no-git-tag-version`.
+    2. Los cambios y versiones se integran en `dev` mediante PRs de ramas `issue/<n>`. Cuando se promociona `dev` a `master`, el workflow de GitHub Actions ([`.github/workflows/deploy.yml`](file:///workspaces/RatingsApp/.github/workflows/deploy.yml)) se ejecuta automáticamente:
        - Compila y prueba la aplicación.
        - Despliega a GitHub Pages.
        - Lee la versión de `package.json`, crea el tag correspondiente (`vX.Y.Z`) y publica el GitHub Release con el detalle del PR mergeado.

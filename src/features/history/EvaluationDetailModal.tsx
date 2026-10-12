@@ -46,7 +46,13 @@ export const EvaluationDetailModal: React.FC<EvaluationDetailModalProps> = ({
                   month: 'long',
                   year: 'numeric',
                 })}
+                {' • '}
+                {new Date(evaluation.date).toLocaleTimeString('es-ES', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
               </p>
+
             </div>
           </div>
 

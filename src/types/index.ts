@@ -1,3 +1,5 @@
+export const DAILY_MOOD_TOPIC_ID = 'topic-daily-mood';
+
 export interface TopicItemDefinition {
   id: string;
   name: string;
@@ -10,8 +12,9 @@ export interface Topic {
   name: string; // e.g., "Trabajo", "Natación"
   description?: string;
   color: string; // Tailwind color or hex (e.g., "#6366f1")
-  icon: string; // Lucide icon name, e.g., "Briefcase", "Activity", "Heart"
+  icon: string; // Lucide icon name, e.g., "Briefcase", "Activity", "Heart", "Smile"
   items: TopicItemDefinition[];
+  isSystem?: boolean; // Protect system topics like daily mood
   createdAt: number;
   updatedAt: number;
 }
@@ -37,9 +40,29 @@ export interface EvaluationEntry {
   createdAt: number;
 }
 
+export interface DailyAggregatedScore {
+  dateStr: string; // 'YYYY-MM-DD'
+  date: Date;
+  day: number; // 1-31
+  month: number; // 0-11
+  year: number;
+  averageScore: number;
+  count: number;
+  entries: EvaluationEntry[];
+  notes: string[];
+}
+
+export interface MonthlyAverage {
+  monthIndex: number; // 0 to 11
+  monthName: string; // 'Ene', 'Feb', ...
+  averageScore: number | null;
+  count: number;
+}
+
 export interface BackupData {
   version: number;
   exportedAt: string;
   topics: Topic[];
   evaluations: EvaluationEntry[];
 }
+
