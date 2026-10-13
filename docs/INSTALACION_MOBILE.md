@@ -57,14 +57,24 @@ Una vez abierta la aplicación en el navegador del teléfono, podés agregarla a
 
 Como **RatingsApp no tiene backend y no almacena nada en servidores**, cualquier persona a la que le pases el enlace tendrá su **propia base de datos privada** en su propio celular:
 
-### Opción A: Publicarla en Internet de forma gratuita (Recomendado para compartir con cualquiera)
-Podés publicar la app gratis en servicios de hosting estático como **Vercel**, **Netlify**, o **GitHub Pages**:
+### Opción A: Despliegue en GitHub Pages con Subdominio Propio (Configuración Oficial)
+Para que **RatingsApp** conviva en tu teléfono junto con otras PWAs sin colisionar en la instalación ni compartir el almacenamiento local (`IndexedDB`), la aplicación se sirve en la raíz de su propio subdominio (`https://ratings.hasselpunk.com/`):
+
+1. El repositorio incluye el archivo `public/CNAME` con `ratings.hasselpunk.com`.
+2. En el panel de DNS de tu dominio (`hasselpunk.com`), configurá un registro **CNAME**:
+   - **Host / Nombre**: `ratings`
+   - **Destino / Valor**: `augustohassel.github.io`
+   - **Proxy (si usás Cloudflare)**: *DNS Only* (nube gris) para permitir que GitHub Pages emita y renueve el certificado SSL/HTTPS automáticamente.
+3. En **GitHub → Settings → Pages**, verificá que el *Custom domain* sea `ratings.hasselpunk.com` y activá **Enforce HTTPS**.
+
+### Opción B: Publicarla en otros servicios gratuitos (Vercel / Netlify)
+También podés publicar la app gratis en servicios de hosting estático como **Vercel** o **Netlify**:
 
 #### Ejemplo rápido con Vercel (1 comando):
 ```bash
 npx vercel
 ```
-O simplemente conectar este repositorio en [vercel.com](https://vercel.com) o [netlify.com](https://netlify.com). Te dará una URL pública HTTPS (por ejemplo: `https://ratings-app-tu-nombre.vercel.app`).
+O simplemente conectar este repositorio en [vercel.com](https://vercel.com) o [netlify.com](https://netlify.com). Te dará una URL pública HTTPS con subdominio propio (por ejemplo: `https://ratings-app-tu-nombre.vercel.app`).
 
 ### ¿Qué pasa cuando alguien más abre tu enlace?
 1. La otra persona verá la aplicación lista para usar, con las plantillas predeterminadas de **Trabajo** y **Natación**.
@@ -73,14 +83,17 @@ O simplemente conectar este repositorio en [vercel.com](https://vercel.com) o [n
 
 ---
 
-## 4. Respaldos y Migración entre Teléfonos
+## 4. Respaldos y Migración entre Teléfonos o Cambios de Dominio (URL)
 
-Si cambiás de celular o querés transferir tus evaluaciones a otro dispositivo:
+> ⚠️ **Importante al cambiar de URL o Subdominio (ej. de `www.hasselpunk.com/RatingsApp` a `ratings.hasselpunk.com`)**:
+> Los navegadores aíslan la base de datos local (`IndexedDB`) por cada *Web Origin* (dominio/subdominio). Antes de pasar a usar el nuevo subdominio o reinstalar la PWA desde una nueva dirección, **exportá primero tu Backup JSON en la URL anterior** e importalo en la nueva URL para conservar todo tu historial.
 
-1. En tu celular actual, andá a la pestaña **Ajustes**.
+Si cambiás de celular, de subdominio o querés transferir tus evaluaciones a otro dispositivo:
+
+1. En tu celular o URL actual, andá a la pestaña **Ajustes**.
 2. Tocá **"Exportar Backup Completo (JSON)"**.
-3. Enviate ese archivo por WhatsApp, Drive, Telegram o Email a tu nuevo dispositivo.
-4. En el nuevo celular, abrí RatingsApp, andá a **Ajustes** y tocá **"Restaurar Backup desde JSON"**.
+3. Enviate ese archivo por WhatsApp, Drive, Telegram o Email (o guardalo en tu teléfono si solo estás cambiando de URL en el mismo dispositivo).
+4. En el nuevo celular o en el nuevo subdominio (`https://ratings.hasselpunk.com`), abrí RatingsApp, andá a **Ajustes** y tocá **"Restaurar Backup desde JSON"**.
 5. Todas tus calificaciones históricas y ámbitos quedarán restaurados instantáneamente.
 
 También podés usar la opción **"Exportar para Excel / Google Sheets (CSV)"** si querés abrir tus datos en una planilla de cálculo para análisis propios.
