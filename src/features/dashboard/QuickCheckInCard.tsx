@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import confetti from 'canvas-confetti';
 import { db } from '../../db';
 import { DAILY_MOOD_TOPIC_ID, EvaluationEntry } from '../../types';
-import { toLocalDateString } from '../../utils/calculator';
+import { toLocalDateString, createIsoFromLocalDate } from '../../utils/calculator';
 import { ScoreBadge } from '../../components/common/ScoreBadge';
 import { AutoResizeTextarea } from '../../components/common/AutoResizeTextarea';
 import {
@@ -33,8 +33,11 @@ export const QuickCheckInCard: React.FC<QuickCheckInCardProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
 
-  // Today's evaluations for daily mood
+  // Today and selected date for daily mood
   const todayStr = toLocalDateString(new Date());
+  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+  const isSelectedDateToday = selectedDate === todayStr;
+
   const dailyEvals =
     useLiveQuery(
       () =>
@@ -45,15 +48,15 @@ export const QuickCheckInCard: React.FC<QuickCheckInCardProps> = ({
       []
     ) || [];
 
-  const todayEntries = React.useMemo(() => {
-    return dailyEvals.filter((e) => toLocalDateString(e.date) === todayStr);
-  }, [dailyEvals, todayStr]);
+  const selectedDateEntries = React.useMemo(() => {
+    return dailyEvals.filter((e) => toLocalDateString(e.date) === selectedDate);
+  }, [dailyEvals, selectedDate]);
 
-  const todayAverage = React.useMemo(() => {
-    if (todayEntries.length === 0) return null;
-    const sum = todayEntries.reduce((acc, e) => acc + e.finalScore, 0);
-    return Math.round((sum / todayEntries.length) * 100) / 100;
-  }, [todayEntries]);
+  const selectedDateAverage = React.useMemo(() => {
+    if (selectedDateEntries.length === 0) return null;
+    const sum = selectedDateEntries.reduce((acc, e) => acc + e.finalScore, 0);
+    return Math.round((sum / selectedDateEntries.length) * 100) / 100;
+  }, [selectedDateEntries]);
 
   const handleScoreSelect = (score: number) => {
     setSelectedScore(score);
@@ -64,11 +67,11 @@ export const QuickCheckInCard: React.FC<QuickCheckInCardProps> = ({
     setIsSaving(true);
 
     try {
-      const now = new Date();
+      const isoDate = createIsoFromLocalDate(selectedDate, new Date());
       const newEntry: EvaluationEntry = {
         id: `mood-${Date.now()}`,
         topicId: DAILY_MOOD_TOPIC_ID,
-        date: now.toISOString(),
+        date: isoDate,
         items: [
           {
             itemId: 'dm-1',
@@ -82,7 +85,7 @@ export const QuickCheckInCard: React.FC<QuickCheckInCardProps> = ({
         totalWeight: 10,
         finalScore: selectedScore,
         notes: note.trim() || undefined,
-        createdAt: now.getTime(),
+        createdAt: Date.now(),
       };
 
       await db.evaluations.add(newEntry);
@@ -153,30 +156,65 @@ export const QuickCheckInCard: React.FC<QuickCheckInCardProps> = ({
           </div>
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-1.5 leading-tight">
-              <span>Check-in de Hoy</span>
+              <span>{isSelectedDateToday ? 'Check-in de Hoy' : 'Check-in Retrospectivo'}</span>
               <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-pink-500/20 text-pink-300 font-semibold uppercase tracking-wider">
-                Rápido
+                {isSelectedDateToday ? 'Rápido' : 'Fecha pasada'}
               </span>
             </h3>
             <p className="text-[11px] text-slate-400">
-              ¿Cómo está tu sensación general hoy? (1 al 10)
+              {isSelectedDateToday
+                ? '¿Cómo está tu sensación general hoy? (1 al 10)'
+                : `Registrar sensación para el ${selectedDate} (1 al 10)`}
             </p>
           </div>
         </div>
 
-        {todayAverage !== null && (
+        {selectedDateAverage !== null && (
           <div className="text-right">
-            <span className="text-[10px] text-slate-400 block font-medium">Promedio hoy</span>
-            <ScoreBadge score={todayAverage} size="sm" />
+            <span className="text-[10px] text-slate-400 block font-medium">
+              {isSelectedDateToday ? 'Promedio hoy' : 'Promedio día'}
+            </span>
+            <ScoreBadge score={selectedDateAverage} size="sm" />
           </div>
         )}
+      </div>
+
+      {/* Date Selector Row */}
+      <div className="flex items-center justify-between bg-slate-950/60 border border-slate-800/80 rounded-2xl px-3 py-1.5 text-xs">
+        <span className="text-slate-300 flex items-center gap-1.5 font-medium">
+          <Calendar className="w-3.5 h-3.5 text-pink-400" />
+          <span>Fecha de la medición:</span>
+        </span>
+        <div className="flex items-center gap-1.5">
+          <input
+            type="date"
+            max={todayStr}
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="bg-slate-900 border border-slate-700/80 rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-pink-500 font-semibold"
+          />
+          {!isSelectedDateToday && (
+            <button
+              type="button"
+              onClick={() => setSelectedDate(todayStr)}
+              className="text-[10px] text-pink-300 hover:text-white font-semibold px-2 py-1 rounded-xl bg-pink-500/20 hover:bg-pink-500/30 transition-colors"
+              title="Volver a hoy"
+            >
+              Hoy
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Feedback banner if saved recently */}
       {justSaved && (
         <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 animate-fade-in">
           <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-          <span>¡Sensación registrada con éxito! Podés sumar otro registro más tarde si cambia tu día.</span>
+          <span>
+            {isSelectedDateToday
+              ? '¡Sensación de hoy registrada con éxito! Podés sumar otro registro más tarde si cambia tu día.'
+              : `¡Sensación del ${selectedDate} registrada con éxito!`}
+          </span>
         </div>
       )}
 
@@ -242,7 +280,9 @@ export const QuickCheckInCard: React.FC<QuickCheckInCardProps> = ({
             className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-pink-600 via-indigo-600 to-indigo-500 hover:from-pink-500 hover:to-indigo-400 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-pink-600/20 active:scale-[0.98] transition-all disabled:opacity-50"
           >
             <Sparkles className="w-4 h-4" />
-            {isSaving ? 'Guardando...' : `Registrar sensación (${selectedScore}/10)`}
+            {isSaving
+              ? 'Guardando...'
+              : `Registrar sensación (${selectedScore}/10)${isSelectedDateToday ? '' : ` para ${selectedDate}`}`}
           </button>
         </div>
       )}
@@ -250,13 +290,15 @@ export const QuickCheckInCard: React.FC<QuickCheckInCardProps> = ({
       {/* Multiple loads today info & Quick links */}
       <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
         <div>
-          {todayEntries.length > 0 ? (
+          {selectedDateEntries.length > 0 ? (
             <span className="flex items-center gap-1 text-slate-300">
               <Calendar className="w-3 h-3 text-indigo-400" />
-              {todayEntries.length} {todayEntries.length === 1 ? 'registro' : 'registros'} hoy
+              {selectedDateEntries.length} {selectedDateEntries.length === 1 ? 'registro' : 'registros'} {isSelectedDateToday ? 'hoy' : 'en esta fecha'}
             </span>
           ) : (
-            <span className="text-slate-500 italic">Sin registros hoy todavía</span>
+            <span className="text-slate-500 italic">
+              Sin registros {isSelectedDateToday ? 'hoy todavía' : 'para esta fecha'}
+            </span>
           )}
         </div>
 

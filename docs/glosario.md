@@ -27,3 +27,8 @@ Este documento centraliza los conceptos, términos y definiciones del dominio de
 - **Definición**: Vista de calendario anual en cuadrícula interactiva de 12 meses (columnas) por 31 días (filas), con coloración térmica según la nota diaria y una fila inferior de promedios mensuales (∅).
 - **Alcance / Propósito**: Ofrecer una perspectiva global del estado anímico y bienestar a lo largo de los 365 días del año con un solo vistazo.
 - **Lo que NO es**: No es un calendario de eventos ni agenda; es una representación térmica retrospectiva de estados de ánimo.
+
+### Carga Retrospectiva (Backfill)
+- **Definición**: Registro o modificación de evaluaciones y sensaciones correspondientes a fechas previas a la fecha actual.
+- **Alcance / Propósito**: Permitir al usuario completar días olvidados o rectificar notas y ponderaciones pasadas preservando la fecha en hora local y evitando desplazamientos por zona horaria UTC.
+- **Lo que NO es**: No altera las mediciones históricas sin acción deliberada del usuario.
