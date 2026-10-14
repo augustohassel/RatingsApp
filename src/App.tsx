@@ -8,9 +8,12 @@ import { HistoryView } from './features/history/HistoryView';
 import { TopicManagerView } from './features/topics/TopicManagerView';
 import { SettingsView } from './features/settings/SettingsView';
 
+import { EvaluationEntry } from './types';
+
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
   const [activeTopicId, setActiveTopicId] = useState<string | undefined>(undefined);
+  const [editingEvaluationId, setEditingEvaluationId] = useState<string | undefined>(undefined);
   const [historyViewMode, setHistoryViewMode] = useState<'timeline' | 'matrix'>('timeline');
   const [isDbReady, setIsDbReady] = useState(false);
 
@@ -22,6 +25,13 @@ export const App: React.FC = () => {
 
   const handleStartEvaluation = (topicId: string) => {
     setActiveTopicId(topicId);
+    setEditingEvaluationId(undefined);
+    setCurrentTab('evaluator');
+  };
+
+  const handleEditEvaluation = (evalEntry: EvaluationEntry) => {
+    setActiveTopicId(evalEntry.topicId);
+    setEditingEvaluationId(evalEntry.id);
     setCurrentTab('evaluator');
   };
 
@@ -32,9 +42,22 @@ export const App: React.FC = () => {
   };
 
   const handleEvaluationSaved = (topicId: string) => {
+    setEditingEvaluationId(undefined);
     setActiveTopicId(topicId);
     setHistoryViewMode('timeline');
     setCurrentTab('history');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingEvaluationId(undefined);
+    setCurrentTab('history');
+  };
+
+  const handleSelectTab = (tab: NavTab) => {
+    if (tab !== 'evaluator') {
+      setEditingEvaluationId(undefined);
+    }
+    setCurrentTab(tab);
   };
 
 
@@ -63,7 +86,10 @@ export const App: React.FC = () => {
         {currentTab === 'evaluator' && (
           <EvaluatorView
             initialTopicId={activeTopicId}
+            editingEvaluationId={editingEvaluationId}
             onEvaluationSaved={handleEvaluationSaved}
+            onCancelEdit={handleCancelEdit}
+            onOpenTopics={() => setCurrentTab('topics')}
           />
         )}
 
@@ -72,6 +98,7 @@ export const App: React.FC = () => {
             initialTopicId={activeTopicId}
             initialViewMode={historyViewMode}
             onNewEvaluation={handleStartEvaluation}
+            onEditEvaluation={handleEditEvaluation}
           />
         )}
 
@@ -85,7 +112,7 @@ export const App: React.FC = () => {
         {currentTab === 'settings' && <SettingsView />}
       </main>
 
-      <BottomNav currentTab={currentTab} onSelectTab={setCurrentTab} />
+      <BottomNav currentTab={currentTab} onSelectTab={handleSelectTab} />
     </div>
   );
 };

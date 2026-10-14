@@ -3,6 +3,8 @@ import {
   calculateWeightedRating,
   aggregateDailyScores,
   calculateMonthlyAverages,
+  toLocalDateString,
+  createIsoFromLocalDate,
 } from './calculator';
 
 
@@ -174,6 +176,28 @@ describe('calculateMonthlyAverages', () => {
     expect(monthly[2].monthName).toBe('Mar');
     expect(monthly[2].averageScore).toBeNull();
     expect(monthly[2].count).toBe(0);
+  });
+});
+
+describe('createIsoFromLocalDate & toLocalDateString', () => {
+  it('preserves the exact local date without timezone backward shift', () => {
+    const dateInput = '2026-05-18';
+    const isoString = createIsoFromLocalDate(dateInput);
+
+    // When converted back to local date string, it must match the original dateInput exactly
+    expect(toLocalDateString(isoString)).toBe(dateInput);
+  });
+
+  it('preserves time when timeSource is provided', () => {
+    const dateInput = '2026-07-22';
+    const timeSource = new Date(2026, 6, 1, 15, 45, 30);
+    const isoString = createIsoFromLocalDate(dateInput, timeSource);
+
+    expect(toLocalDateString(isoString)).toBe(dateInput);
+    const parsed = new Date(isoString);
+    expect(parsed.getHours()).toBe(15);
+    expect(parsed.getMinutes()).toBe(45);
+    expect(parsed.getSeconds()).toBe(30);
   });
 });
 

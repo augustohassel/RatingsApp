@@ -1,7 +1,7 @@
 import React from 'react';
 import { EvaluationEntry, Topic } from '../../types';
 import { ScoreBadge } from '../../components/common/ScoreBadge';
-import { X, Calendar, MessageSquare, Trash2, Award } from 'lucide-react';
+import { X, Calendar, MessageSquare, Trash2, Award, Pencil } from 'lucide-react';
 import { db } from '../../db';
 
 interface EvaluationDetailModalProps {
@@ -9,6 +9,7 @@ interface EvaluationDetailModalProps {
   topic?: Topic;
   onClose: () => void;
   onDeleted: () => void;
+  onEdit?: (evaluation: EvaluationEntry) => void;
 }
 
 export const EvaluationDetailModal: React.FC<EvaluationDetailModalProps> = ({
@@ -16,6 +17,7 @@ export const EvaluationDetailModal: React.FC<EvaluationDetailModalProps> = ({
   topic,
   onClose,
   onDeleted,
+  onEdit,
 }) => {
   const handleDelete = async () => {
     if (confirm('¿Estás seguro de que deseas eliminar esta evaluación del histórico?')) {
@@ -147,7 +149,7 @@ export const EvaluationDetailModal: React.FC<EvaluationDetailModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t border-slate-800 bg-slate-900/60 flex items-center justify-between">
+        <div className="p-4 border-t border-slate-800 bg-slate-900/60 flex items-center justify-between gap-2">
           <button
             onClick={handleDelete}
             className="text-xs text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-rose-500/10 transition-colors"
@@ -155,12 +157,26 @@ export const EvaluationDetailModal: React.FC<EvaluationDetailModalProps> = ({
             <Trash2 className="w-4 h-4" />
             Eliminar del histórico
           </button>
-          <button
-            onClick={onClose}
-            className="text-xs text-white bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-xl font-medium transition-colors"
-          >
-            Cerrar
-          </button>
+          <div className="flex items-center gap-2">
+            {onEdit && (
+              <button
+                onClick={() => {
+                  onEdit(evaluation);
+                  onClose();
+                }}
+                className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 transition-colors"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Editar evaluación
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="text-xs text-white bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-xl font-medium transition-colors"
+            >
+              Cerrar
+            </button>
+          </div>
         </div>
       </div>
     </div>
