@@ -151,6 +151,39 @@ export function toLocalDateString(dateInput: string | Date | number): string {
 }
 
 /**
+ * Creates an ISO date string for a specific YYYY-MM-DD local date, avoiding UTC midnight shifts.
+ * If timeSource is provided, its local hours, minutes, and seconds are preserved.
+ * Otherwise, midday (12:00) is used for past days or current local time for today.
+ */
+export function createIsoFromLocalDate(
+  dateStr: string,
+  timeSource?: Date | string | number
+): string {
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) {
+    return new Date(dateStr).toISOString();
+  }
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+
+  const d = new Date();
+  if (timeSource) {
+    const src = new Date(timeSource);
+    if (!isNaN(src.getTime())) {
+      d.setHours(src.getHours(), src.getMinutes(), src.getSeconds(), src.getMilliseconds());
+    }
+  } else {
+    const todayStr = toLocalDateString(new Date());
+    if (dateStr !== todayStr) {
+      d.setHours(12, 0, 0, 0);
+    }
+  }
+  d.setFullYear(year, month, day);
+  return d.toISOString();
+}
+
+/**
  * Aggregates evaluations by day, computing the arithmetic mean for multiple entries on the same day.
  * Preserves all original entries, exact timestamps, and notes.
  */

@@ -34,12 +34,14 @@ interface HistoryViewProps {
   initialTopicId?: string;
   initialViewMode?: HistoryViewMode;
   onNewEvaluation: (topicId: string) => void;
+  onEditEvaluation?: (evaluation: EvaluationEntry) => void;
 }
 
 export const HistoryView: React.FC<HistoryViewProps> = ({
   initialTopicId,
   initialViewMode = 'timeline',
   onNewEvaluation,
+  onEditEvaluation,
 }) => {
   const topics = useLiveQuery(() => db.topics.toArray(), []) || [];
   const evaluations =
@@ -469,6 +471,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           topic={topics.find((t) => t.id === selectedEvaluation.topicId)}
           onClose={() => setSelectedEvaluation(null)}
           onDeleted={() => setSelectedEvaluation(null)}
+          onEdit={onEditEvaluation}
         />
       )}
     </div>

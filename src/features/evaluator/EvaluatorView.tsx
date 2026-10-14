@@ -2,33 +2,79 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import confetti from 'canvas-confetti';
 import { db } from '../../db';
-import { calculateWeightedRating, RawItemInput } from '../../utils/calculator';
+import {
+  calculateWeightedRating,
+  RawItemInput,
+  createIsoFromLocalDate,
+  toLocalDateString,
+} from '../../utils/calculator';
+import { EvaluationEntry } from '../../types';
 import { CircularGauge } from '../../components/common/CircularGauge';
 import { AutoResizeTextarea } from '../../components/common/AutoResizeTextarea';
-import { Info, Plus, Trash2, CheckCircle2, ChevronDown, Calendar, MessageSquareQuote } from 'lucide-react';
+import {
+  Info,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  ChevronDown,
+  Calendar,
+  MessageSquareQuote,
+  Pencil,
+} from 'lucide-react';
 
 interface EvaluatorViewProps {
   initialTopicId?: string;
+  editingEvaluationId?: string;
   onEvaluationSaved: (topicId: string) => void;
+  onCancelEdit?: () => void;
   onOpenTopics?: () => void;
 }
 
 export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
   initialTopicId,
+  editingEvaluationId,
   onEvaluationSaved,
+  onCancelEdit,
   onOpenTopics,
 }) => {
   const topics = useLiveQuery(() => db.topics.toArray(), []) || [];
   const [selectedTopicId, setSelectedTopicId] = useState<string>(initialTopicId || '');
+  const [editingEvaluation, setEditingEvaluation] = useState<EvaluationEntry | null>(null);
+
+  // Load existing evaluation if in edit mode
+  useEffect(() => {
+    if (editingEvaluationId) {
+      db.evaluations.get(editingEvaluationId).then((existing) => {
+        if (existing) {
+          setEditingEvaluation(existing);
+          setSelectedTopicId(existing.topicId);
+          setEvaluationDate(toLocalDateString(existing.date));
+          setNotes(existing.notes || '');
+          setItems(
+            existing.items.map((it) => ({
+              itemId: it.itemId,
+              name: it.name,
+              explanation: it.explanation,
+              weight: it.weight,
+              score: it.score,
+            }))
+          );
+        }
+      });
+    } else {
+      setEditingEvaluation(null);
+    }
+  }, [editingEvaluationId]);
 
   // Keep selectedTopicId in sync with props or first available topic
   useEffect(() => {
+    if (editingEvaluationId) return;
     if (initialTopicId) {
       setSelectedTopicId(initialTopicId);
     } else if (topics.length > 0 && !selectedTopicId) {
       setSelectedTopicId(topics[0].id);
     }
-  }, [initialTopicId, topics, selectedTopicId]);
+  }, [initialTopicId, topics, selectedTopicId, editingEvaluationId]);
 
   const currentTopic = useMemo(() => {
     return topics.find((t) => t.id === selectedTopicId);
@@ -38,14 +84,14 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
   const [items, setItems] = useState<RawItemInput[]>([]);
   const [notes, setNotes] = useState<string>('');
   const [evaluationDate, setEvaluationDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
+    toLocalDateString(new Date())
   );
   const [expandedInfo, setExpandedInfo] = useState<Record<string, boolean>>({});
   const [isSaving, setIsSaving] = useState(false);
 
-  // Initialize items when currentTopic changes
+  // Initialize items when currentTopic changes (only if not editing)
   useEffect(() => {
-    if (currentTopic) {
+    if (currentTopic && !editingEvaluationId) {
       const initialItems: RawItemInput[] = currentTopic.items.map((itemDef) => ({
         itemId: itemDef.id,
         name: itemDef.name,
@@ -55,7 +101,7 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
       }));
       setItems(initialItems);
     }
-  }, [currentTopic]);
+  }, [currentTopic, editingEvaluationId]);
 
   // Real-time calculation result
   const calculation = useMemo(() => {
@@ -104,17 +150,35 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
     setIsSaving(true);
 
     try {
-      const evalId = `eval-${Date.now()}`;
-      await db.evaluations.add({
-        id: evalId,
-        topicId: currentTopic.id,
-        date: new Date(evaluationDate).toISOString(),
-        items: calculation.items,
-        totalWeight: calculation.totalWeight,
-        finalScore: calculation.finalScore,
-        notes: notes.trim(),
-        createdAt: Date.now(),
-      });
+      const isoDate = createIsoFromLocalDate(
+        evaluationDate,
+        editingEvaluation ? editingEvaluation.date : undefined
+      );
+
+      if (editingEvaluation) {
+        await db.evaluations.put({
+          id: editingEvaluation.id,
+          topicId: currentTopic.id,
+          date: isoDate,
+          items: calculation.items,
+          totalWeight: calculation.totalWeight,
+          finalScore: calculation.finalScore,
+          notes: notes.trim(),
+          createdAt: editingEvaluation.createdAt || Date.now(),
+        });
+      } else {
+        const evalId = `eval-${Date.now()}`;
+        await db.evaluations.add({
+          id: evalId,
+          topicId: currentTopic.id,
+          date: isoDate,
+          items: calculation.items,
+          totalWeight: calculation.totalWeight,
+          finalScore: calculation.finalScore,
+          notes: notes.trim(),
+          createdAt: Date.now(),
+        });
+      }
 
       // Trigger celebration confetti
       confetti({
@@ -163,6 +227,30 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
 
   return (
     <div className="pb-28 max-w-md mx-auto px-4 pt-2 space-y-4">
+      {/* Banner if in edit mode */}
+      {editingEvaluation && (
+        <div className="p-3.5 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-between text-xs text-indigo-300 animate-fade-in shadow-md">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+              <Pencil className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <p className="font-bold text-white leading-tight">Editando registro histórico</p>
+              <p className="text-[11px] text-indigo-300/80">Modificando valores de la evaluación guardada</p>
+            </div>
+          </div>
+          {onCancelEdit && (
+            <button
+              type="button"
+              onClick={onCancelEdit}
+              className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs transition-colors"
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Topic Switcher Dropdown */}
       <div className="flex items-center justify-between gap-3">
         <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -171,8 +259,9 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
         <div className="relative flex-1">
           <select
             value={selectedTopicId}
+            disabled={Boolean(editingEvaluation)}
             onChange={(e) => setSelectedTopicId(e.target.value)}
-            className="w-full appearance-none bg-slate-900 border border-slate-700/80 rounded-xl py-2 px-3 pr-8 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full appearance-none bg-slate-900 border border-slate-700/80 rounded-xl py-2 px-3 pr-8 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-75 disabled:cursor-not-allowed"
           >
             {topics.map((t) => (
               <option key={t.id} value={t.id}>
@@ -388,7 +477,11 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
           className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-500 hover:from-indigo-500 hover:to-emerald-400 active:scale-[0.98] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-50"
         >
           <CheckCircle2 className="w-5 h-5" />
-          {isSaving ? 'Guardando...' : `Guardar Evaluación (${calculation.finalScore.toFixed(2)})`}
+          {isSaving
+            ? 'Guardando...'
+            : editingEvaluation
+            ? `Actualizar Evaluación (${calculation.finalScore.toFixed(2)})`
+            : `Guardar Evaluación (${calculation.finalScore.toFixed(2)})`}
         </button>
       </div>
     </div>
