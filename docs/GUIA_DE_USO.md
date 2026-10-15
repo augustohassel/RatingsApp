@@ -105,3 +105,11 @@ Si querés profundizar sobre un ámbito (ej. tu jornada laboral o deportiva) con
 4. El asistente dialogará con vos y generará una **Tarjeta de Borrador (Draft Card)** interactiva con notas propuestas para cada criterio del ámbito y la nota ponderada en vivo.
 5. Podrás modificar cualquier slider antes de tocar **"Confirmar y Guardar en Historial"** para impactar el registro en la base de datos local.
 
+### C. Dictado por Voz Nativo (Manos Libres) 🎙️
+En dispositivos y navegadores compatibles (como Chrome en Android o Safari en iOS), verás un botón con ícono de micrófono junto al campo de texto del chat:
+1. Tocá el ícono de micrófono para iniciar la escucha.
+2. Hablá con naturalidad (por ejemplo: *"hoy me siento un 8.5: excelente reunión con el equipo"*).
+3. Tus palabras se transcribirán en tiempo real en la caja de texto.
+4. Tocá el micrófono nuevamente o el botón de enviar para asentar tu registro al instante.
+
+

@@ -24,7 +24,11 @@ import {
   Heart,
   Briefcase,
   TrendingUp,
+  Mic,
+  MicOff,
 } from 'lucide-react';
+import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
+
 
 interface ChatViewProps {
   onOpenSettings: () => void;
@@ -41,6 +45,23 @@ export const ChatView: React.FC<ChatViewProps> = ({ onOpenSettings, onNavigateTo
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const {
+    isSupported: isSpeechSupported,
+    isListening,
+    error: speechError,
+    startListening,
+    stopListening,
+  } = useSpeechRecognition({
+    onResult: (text) => {
+      setInputText((prev) => {
+        if (!prev) return text;
+        if (prev.endsWith(' ')) return `${prev}${text}`;
+        return `${prev} ${text}`;
+      });
+    },
+  });
+
 
 
   const aiSettings = getAiSettings();
@@ -370,13 +391,26 @@ Por favor verifica tu conexión y la configuración de tu clave en Ajustes.`,
       </div>
 
       {/* Barra de Entrada / Input Móvil */}
-      <div className="px-4 pt-1 pb-2 shrink-0">
+      <div className="px-4 pt-1 pb-2 shrink-0 space-y-1">
+        {isListening && (
+          <div className="flex items-center gap-2 text-[11px] text-rose-400 font-medium px-2 py-0.5 animate-pulse">
+            <span className="w-2 h-2 rounded-full bg-rose-500" />
+            <span>Escuchando... Di algo como "hoy me siento un 8" o cuéntame tu día</span>
+          </div>
+        )}
+        {speechError && (
+          <div className="text-[11px] text-amber-400/90 px-2 py-0.5">
+            ⚠️ {speechError}
+          </div>
+        )}
+
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            if (isListening) stopListening();
             handleSendMessage();
           }}
-          className="relative flex items-center bg-slate-900 border border-slate-800 rounded-2xl p-1.5 focus-within:border-indigo-500/80 transition-colors shadow-lg"
+          className="relative flex items-center bg-slate-900 border border-slate-800 rounded-2xl p-1.5 focus-within:border-indigo-500/80 transition-colors shadow-lg gap-1"
         >
           <textarea
             ref={textareaRef}
@@ -386,16 +420,41 @@ Por favor verifica tu conexión y la configuración de tu clave en Ajustes.`,
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
+                if (isListening) stopListening();
                 handleSendMessage();
               }
             }}
             placeholder={
-              hasAiConfigured
-                ? 'Escribe tu sensación o reflexiona sobre tu día...'
+              isListening
+                ? 'Escuchando tu voz...'
+                : hasAiConfigured
+                ? 'Escribe o dicta tu sensación del día...'
                 : 'Registra tu sensación (ej: "hoy me siento un 8")...'
             }
             className="w-full bg-transparent text-xs sm:text-sm text-slate-100 placeholder-slate-500 px-3 py-1.5 focus:outline-none resize-none max-h-24 custom-scrollbar"
           />
+
+          {isSpeechSupported && (
+            <button
+              type="button"
+              onClick={() => {
+                if (isListening) {
+                  stopListening();
+                } else {
+                  startListening();
+                }
+              }}
+              title={isListening ? 'Detener dictado por voz' : 'Dictar por voz'}
+              className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                isListening
+                  ? 'bg-rose-500 text-white animate-pulse shadow-md shadow-rose-500/30'
+                  : 'text-slate-400 hover:text-indigo-400 hover:bg-slate-800/80'
+              }`}
+            >
+              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </button>
+          )}
+
           <button
             type="submit"
             disabled={!inputText.trim() || isLoading}
@@ -405,6 +464,7 @@ Por favor verifica tu conexión y la configuración de tu clave en Ajustes.`,
           </button>
         </form>
       </div>
+
     </div>
   );
 };
