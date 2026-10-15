@@ -5,7 +5,11 @@ import {
   calculateMonthlyAverages,
   toLocalDateString,
   createIsoFromLocalDate,
+  getScoreColor,
+  getMoodHeatmapColor,
 } from './calculator';
+
+
 
 
 describe('calculateWeightedRating', () => {
@@ -199,5 +203,63 @@ describe('createIsoFromLocalDate & toLocalDateString', () => {
     expect(parsed.getMinutes()).toBe(45);
     expect(parsed.getSeconds()).toBe(30);
   });
+
+  it('handles non-hyphen dateStr format with fallback to Date.toISOString', () => {
+    const fallbackInput = '2026/05/18';
+    const iso = createIsoFromLocalDate(fallbackInput);
+    expect(typeof iso).toBe('string');
+    expect(iso).toContain('2026');
+  });
 });
+
+describe('Color and Label helpers', () => {
+  it('returns appropriate score colors across ranges', () => {
+    // >= 8.0
+    expect(getScoreColor(9).text).toContain('emerald');
+    expect(getScoreColor(9).bg).toContain('emerald');
+    expect(getScoreColor(9).border).toContain('emerald');
+    expect(getScoreColor(9).ring).toContain('emerald');
+
+    // 6.5 - 7.99
+    expect(getScoreColor(7.0).text).toContain('indigo');
+    expect(getScoreColor(7.0).bg).toContain('indigo');
+
+    // 5.0 - 6.49
+    expect(getScoreColor(5.5).text).toContain('amber');
+    expect(getScoreColor(5.5).bg).toContain('amber');
+
+    // < 5.0
+    expect(getScoreColor(3.0).text).toContain('rose');
+    expect(getScoreColor(3.0).bg).toContain('rose');
+  });
+
+
+  it('returns heatmap styling for Mood Wrapped', () => {
+    // null / undefined
+    const nullScore = getMoodHeatmapColor(null);
+    expect(nullScore.hex).toBe('#0f172a');
+
+    // >= 8.5
+    const high = getMoodHeatmapColor(9);
+    expect(high.hex).toBe('#10b981');
+
+    // >= 7.0
+    const good = getMoodHeatmapColor(7.5);
+    expect(good.hex).toBe('#059669');
+
+    // >= 5.5
+    const mid = getMoodHeatmapColor(6);
+    expect(mid.hex).toBe('#f59e0b');
+
+    // >= 4.0
+    const low = getMoodHeatmapColor(4.5);
+    expect(low.hex).toBe('#f97316');
+
+    // < 4.0
+    const critical = getMoodHeatmapColor(2);
+    expect(critical.hex).toBe('#f43f5e');
+  });
+});
+
+
 
