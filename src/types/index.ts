@@ -66,3 +66,37 @@ export interface BackupData {
   evaluations: EvaluationEntry[];
 }
 
+export interface ChatDraftEvaluationItem {
+  itemId: string;
+  name: string;
+  explanation?: string;
+  weight: number;
+  score: number;
+  justification?: string;
+}
+
+export interface ChatDraftEvaluation {
+  topicId: string;
+  topicName: string;
+  dateStr?: string; // YYYY-MM-DD
+  items: ChatDraftEvaluationItem[];
+  notes?: string;
+  confirmed?: boolean;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: number;
+  draftEvaluation?: ChatDraftEvaluation;
+}
+
+export interface AiSettings {
+  provider: 'gemini' | 'openai';
+  apiKey: string;
+  modelName: string;
+  baseUrl?: string; // Para OpenAI compatible / Ollama
+}
+
+

@@ -1,10 +1,11 @@
 import Dexie, { Table } from 'dexie';
-import { Topic, EvaluationEntry, BackupData } from '../types';
+import { Topic, EvaluationEntry, BackupData, ChatMessage } from '../types';
 import { INITIAL_TOPICS, DAILY_MOOD_TOPIC } from './seeds';
 
 export class RatingsDatabase extends Dexie {
   topics!: Table<Topic, string>;
   evaluations!: Table<EvaluationEntry, string>;
+  chatMessages!: Table<ChatMessage, string>;
 
   constructor() {
     super('RatingsAppDB');
@@ -12,10 +13,16 @@ export class RatingsDatabase extends Dexie {
       topics: 'id, name, createdAt',
       evaluations: 'id, topicId, date, finalScore, createdAt',
     });
+    this.version(2).stores({
+      topics: 'id, name, createdAt',
+      evaluations: 'id, topicId, date, finalScore, createdAt',
+      chatMessages: 'id, timestamp',
+    });
   }
 }
 
 export const db = new RatingsDatabase();
+
 
 export const INITIALIZED_KEY = 'ratingsapp_has_initialized_v1';
 
@@ -142,9 +149,10 @@ export async function importBackup(jsonString: string): Promise<{ success: boole
  * Wipe all data completely and ensure it stays empty across reloads
  */
 export async function clearAllDatabase(): Promise<void> {
-  await db.transaction('rw', db.topics, db.evaluations, async () => {
+  await db.transaction('rw', db.topics, db.evaluations, db.chatMessages, async () => {
     await db.topics.clear();
     await db.evaluations.clear();
+    await db.chatMessages.clear();
   });
   if (typeof window !== 'undefined') {
     localStorage.setItem(INITIALIZED_KEY, 'true');
@@ -155,12 +163,21 @@ export async function clearAllDatabase(): Promise<void> {
  * Reset database to default initial state (restores Google Sheets templates)
  */
 export async function resetDatabase(): Promise<void> {
-  await db.transaction('rw', db.topics, db.evaluations, async () => {
+  await db.transaction('rw', db.topics, db.evaluations, db.chatMessages, async () => {
     await db.topics.clear();
     await db.evaluations.clear();
+    await db.chatMessages.clear();
   });
   if (typeof window !== 'undefined') {
     localStorage.removeItem(INITIALIZED_KEY);
   }
   await initializeDatabase();
 }
+
+/**
+ * Clear only chat messages
+ */
+export async function clearChatMessages(): Promise<void> {
+  await db.chatMessages.clear();
+}
+
