@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from "react";
 
 // Tipos para la Web Speech API
 interface SpeechRecognitionEventLike extends Event {
@@ -45,12 +45,12 @@ interface UseSpeechRecognitionOptions {
 
 export function useSpeechRecognition(options?: UseSpeechRecognitionOptions) {
   const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState('');
+  const [transcript, setTranscript] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const isSupported =
-    typeof window !== 'undefined' &&
+    typeof window !== "undefined" &&
     Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
 
   const stopListening = useCallback(() => {
@@ -62,7 +62,7 @@ export function useSpeechRecognition(options?: UseSpeechRecognitionOptions) {
 
   const startListening = useCallback(() => {
     if (!isSupported) {
-      setError('El reconocimiento de voz no está soportado en este navegador.');
+      setError("El reconocimiento de voz no está soportado en este navegador.");
       return;
     }
 
@@ -74,10 +74,10 @@ export function useSpeechRecognition(options?: UseSpeechRecognitionOptions) {
       const recognition = new SpeechRecognitionConstructor();
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.lang = options?.lang || 'es-ES';
+      recognition.lang = options?.lang || "es-ES";
 
       recognition.onresult = (event: SpeechRecognitionEventLike) => {
-        let currentTranscript = '';
+        let currentTranscript = "";
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const item = event.results[i];
           if (item && item[0]) {
@@ -94,12 +94,14 @@ export function useSpeechRecognition(options?: UseSpeechRecognitionOptions) {
       };
 
       recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
-        if (event.error === 'no-speech') {
+        if (event.error === "no-speech") {
           // Ignorar silencio
           return;
         }
-        if (event.error === 'not-allowed') {
-          setError('Permiso de micrófono denegado. Habilita el acceso en tu navegador.');
+        if (event.error === "not-allowed") {
+          setError(
+            "Permiso de micrófono denegado. Habilita el acceso en tu navegador.",
+          );
         } else {
           setError(`Error de reconocimiento: ${event.error}`);
         }
@@ -115,13 +117,13 @@ export function useSpeechRecognition(options?: UseSpeechRecognitionOptions) {
       setIsListening(true);
       setError(null);
     } catch (err) {
-      setError((err as Error).message || 'No se pudo iniciar el micrófono.');
+      setError((err as Error).message || "No se pudo iniciar el micrófono.");
       setIsListening(false);
     }
   }, [isSupported, options]);
 
   const resetTranscript = useCallback(() => {
-    setTranscript('');
+    setTranscript("");
     setError(null);
   }, []);
 
@@ -143,4 +145,3 @@ export function useSpeechRecognition(options?: UseSpeechRecognitionOptions) {
     resetTranscript,
   };
 }
-
