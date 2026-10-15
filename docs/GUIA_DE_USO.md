@@ -73,9 +73,35 @@ En la pestaña **Histórico**:
 
 ## 5. Crear Nuevos Ámbitos
 
-1. Andá a la pestaña **Ámbitos**.
+1. Andá a la sección **Administrar Ámbitos** (desde Inicio o tocando Administrar).
 2. Tocá **"Nuevo"** en la esquina superior.
 3. Asignale un nombre (ej. *Natación*, *Estudios*, *Finanzas personales*, *Relación de Pareja*).
 4. Elegí un color distintivo y un ícono.
 5. Definí los criterios que lo componen y sus pesos base sugeridos.
 6. Tocá **"Crear Ámbito"**. A partir de ese momento podrás evaluar ese nuevo ámbito con la misma facilidad.
+
+---
+
+## 6. Interfaz Conversacional y Asistente de Chat 💬
+
+RatingsApp cuenta con un chat inteligente accesible desde la barra inferior o desde el botón de chat en la cabecera, pensado para reducir la fricción al registrar o evaluar tus jornadas.
+
+### A. Check-in Rápido de Sensación Diaria (100% Offline)
+No necesitás configurar claves ni tener conexión a internet. Podés escribir directamente en el chat expresiones como:
+- *"hoy me siento un 8"*
+- *"mi estado de ánimo hoy es 7.5: muy buen avance en el equipo"*
+- *"sensación del día 6 - algo cansado pero productivo"*
+- *"nota de hoy 9: logré todos los objetivos"*
+
+El parser determinístico local interpretará la nota (escala 1 a 10) y el comentario, asentándolo de inmediato en tu historial y en tu matriz anual de bienestar (Mood Wrapped).
+
+### B. Evaluación Reflexiva Guiada por IA (BYOK)
+Si querés profundizar sobre un ámbito (ej. tu jornada laboral o deportiva) conversando de manera reflexiva:
+1. Andá a **Ajustes > Asistente Conversacional (IA / BYOK)**.
+2. Elegí tu proveedor preferido:
+   - **Google Gemini**: Ingresá tu API Key gratuita de Google AI Studio.
+   - **OpenAI / Compatible (Ollama)**: Ingresá tu clave o dejá la URL local de Ollama (ej. `http://localhost:11434/v1`).
+3. En la pestaña **Chat**, conversá libremente contando qué ocurrió en tu jornada o pedile al asistente evaluar un ámbito determinado.
+4. El asistente dialogará con vos y generará una **Tarjeta de Borrador (Draft Card)** interactiva con notas propuestas para cada criterio del ámbito y la nota ponderada en vivo.
+5. Podrás modificar cualquier slider antes de tocar **"Confirmar y Guardar en Historial"** para impactar el registro en la base de datos local.
+

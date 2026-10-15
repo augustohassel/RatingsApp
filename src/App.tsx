@@ -7,8 +7,10 @@ import { EvaluatorView } from './features/evaluator/EvaluatorView';
 import { HistoryView } from './features/history/HistoryView';
 import { TopicManagerView } from './features/topics/TopicManagerView';
 import { SettingsView } from './features/settings/SettingsView';
+import { ChatView } from './features/chat/ChatView';
 
 import { EvaluationEntry } from './types';
+
 
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
@@ -72,7 +74,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      <Header />
+      <Header onOpenChat={() => setCurrentTab('chat')} />
 
       <main className="flex-1 w-full max-w-lg mx-auto">
         {currentTab === 'dashboard' && (
@@ -80,6 +82,14 @@ export const App: React.FC = () => {
             onStartEvaluation={handleStartEvaluation}
             onViewHistory={handleViewHistory}
             onOpenTopics={() => setCurrentTab('topics')}
+            onOpenChat={() => setCurrentTab('chat')}
+          />
+        )}
+
+        {currentTab === 'chat' && (
+          <ChatView
+            onOpenSettings={() => setCurrentTab('settings')}
+            onNavigateToHistory={handleViewHistory}
           />
         )}
 
@@ -111,6 +121,7 @@ export const App: React.FC = () => {
 
         {currentTab === 'settings' && <SettingsView />}
       </main>
+
 
       <BottomNav currentTab={currentTab} onSelectTab={handleSelectTab} />
     </div>
