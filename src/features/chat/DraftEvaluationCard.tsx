@@ -4,14 +4,15 @@ import { calculateWeightedRating, createIsoFromLocalDate, toLocalDateString } fr
 import { CircularGauge } from '../../components/common/CircularGauge';
 import { ScoreBadge } from '../../components/common/ScoreBadge';
 import confetti from 'canvas-confetti';
-import { CheckCircle2, Calendar, Sparkles, MessageSquareQuote, Check } from 'lucide-react';
+import { CheckCircle2, Calendar, Sparkles, MessageSquareQuote, Check, RotateCcw } from 'lucide-react';
 
 interface DraftEvaluationCardProps {
   draft: ChatDraftEvaluation;
   onConfirm: (confirmedEntry: EvaluationEntry) => Promise<void>;
+  onStartNewSession?: () => void;
 }
 
-export const DraftEvaluationCard: React.FC<DraftEvaluationCardProps> = ({ draft, onConfirm }) => {
+export const DraftEvaluationCard: React.FC<DraftEvaluationCardProps> = ({ draft, onConfirm, onStartNewSession }) => {
   const [items, setItems] = useState(draft.items);
   const [notes, setNotes] = useState(draft.notes || '');
   const [dateStr, setDateStr] = useState(draft.dateStr || toLocalDateString(new Date()));
@@ -201,9 +202,21 @@ export const DraftEvaluationCard: React.FC<DraftEvaluationCardProps> = ({ draft,
             <span>{isSaving ? 'Guardando...' : 'Confirmar y Guardar en Historial'}</span>
           </button>
         ) : (
-          <div className="w-full py-2 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium flex items-center justify-center gap-2">
-            <Check className="w-4 h-4" />
-            <span>Evaluación guardada exitosamente en tu base de datos local.</span>
+          <div className="space-y-2">
+            <div className="w-full py-2 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium flex items-center justify-center gap-2">
+              <Check className="w-4 h-4" />
+              <span>Evaluación guardada exitosamente en tu base de datos local.</span>
+            </div>
+            {onStartNewSession && (
+              <button
+                type="button"
+                onClick={onStartNewSession}
+                className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-indigo-500/30 text-indigo-300 hover:text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Iniciar nueva conversación limpia</span>
+              </button>
+            )}
           </div>
         )}
       </div>

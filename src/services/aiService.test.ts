@@ -7,6 +7,8 @@ import {
   extractDraftEvaluation,
   sendChatMessage,
   testAiConnection,
+  prepareHistoryWindow,
+  MAX_HISTORY_MESSAGES,
 } from './aiService';
 import { Topic, ChatMessage } from '../types';
 
@@ -246,6 +248,113 @@ describe('aiService - Provider HTTP Calls (Mocked fetch)', () => {
     expect(res.message).toBe('API_KEY_INVALID');
 
     vi.unstubAllGlobals();
+  });
+
+  it('sends at most MAX_HISTORY_MESSAGES to Gemini', async () => {
+    const longHistory: ChatMessage[] = Array.from({ length: 20 }, (_, i) => ({
+      id: `m-${i}`,
+      role: i % 2 === 0 ? 'user' : 'assistant',
+      content: `Msg ${i}`,
+      timestamp: 1000 + i,
+    }));
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: 'OK' }] } }],
+      }),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    await sendChatMessage(longHistory, 'Nuevo', sampleTopics, undefined, {
+      provider: 'gemini',
+      apiKey: 'test-key',
+      modelName: 'gemini-1.5-flash',
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.contents.length).toBeLessThanOrEqual(MAX_HISTORY_MESSAGES);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('sends at most MAX_HISTORY_MESSAGES (+ system) to OpenAI', async () => {
+    const longHistory: ChatMessage[] = Array.from({ length: 20 }, (_, i) => ({
+      id: `m-${i}`,
+      role: i % 2 === 0 ? 'user' : 'assistant',
+      content: `Msg ${i}`,
+      timestamp: 1000 + i,
+    }));
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: 'OK' } }],
+      }),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    await sendChatMessage(longHistory, 'Nuevo', sampleTopics, undefined, {
+      provider: 'openai',
+      apiKey: 'test-key',
+      modelName: 'gpt-4o',
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    // 1 system message + at most MAX_HISTORY_MESSAGES conversation messages
+    expect(body.messages.length).toBeLessThanOrEqual(MAX_HISTORY_MESSAGES + 1);
+
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('aiService - Sliding window history preparation', () => {
+  it('bounds messages to MAX_HISTORY_MESSAGES (10 by default)', () => {
+    const longHistory: ChatMessage[] = Array.from({ length: 25 }, (_, i) => ({
+      id: `msg-${i}`,
+      role: i % 2 === 0 ? 'user' : 'assistant',
+      content: `Mensaje ${i}`,
+      timestamp: 1000 + i,
+    }));
+
+    const turns = prepareHistoryWindow(longHistory, 'Nuevo mensaje');
+    expect(turns).toHaveLength(MAX_HISTORY_MESSAGES);
+    expect(turns[turns.length - 1].content).toBe('Nuevo mensaje');
+    expect(turns[turns.length - 1].role).toBe('user');
+  });
+
+  it('avoids duplicating newMessage when already added to history', () => {
+    const historyWithLatestUser: ChatMessage[] = [
+      { id: '1', role: 'assistant', content: '¿Cómo estás?', timestamp: 1000 },
+      { id: '2', role: 'user', content: 'Tuve un buen día', timestamp: 1001 },
+    ];
+
+    const turns = prepareHistoryWindow(historyWithLatestUser, 'Tuve un buen día');
+    expect(turns).toHaveLength(2);
+    expect(turns[0].content).toBe('¿Cómo estás?');
+    expect(turns[1].content).toBe('Tuve un buen día');
+  });
+
+  it('appends newMessage if not present in history', () => {
+    const history: ChatMessage[] = [
+      { id: '1', role: 'assistant', content: 'Bienvenido', timestamp: 1000 },
+    ];
+
+    const turns = prepareHistoryWindow(history, 'Hola');
+    expect(turns).toHaveLength(2);
+    expect(turns[1]).toEqual({ role: 'user', content: 'Hola' });
+  });
+
+  it('ignores system messages and keeps only user and assistant', () => {
+    const mixedHistory: ChatMessage[] = [
+      { id: 'sys', role: 'system', content: 'System notice', timestamp: 999 },
+      { id: '1', role: 'assistant', content: 'Hola', timestamp: 1000 },
+      { id: '2', role: 'user', content: 'Día productivo', timestamp: 1001 },
+    ];
+
+    const turns = prepareHistoryWindow(mixedHistory, 'Día productivo');
+    expect(turns).toHaveLength(2);
+    expect(turns.some((t) => (t as any).role === 'system')).toBe(false);
   });
 });
 

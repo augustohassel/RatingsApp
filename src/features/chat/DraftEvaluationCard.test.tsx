@@ -76,5 +76,24 @@ describe('DraftEvaluationCard', () => {
       expect(screen.getByText(/Evaluación guardada exitosamente/i)).toBeInTheDocument();
     });
   });
+
+  it('renders and invokes onStartNewSession button when confirmed', async () => {
+    const handleConfirm = vi.fn().mockResolvedValue(undefined);
+    const handleStartNewSession = vi.fn();
+
+    render(
+      <DraftEvaluationCard
+        draft={{ ...sampleDraft, confirmed: true }}
+        onConfirm={handleConfirm}
+        onStartNewSession={handleStartNewSession}
+      />
+    );
+
+    const newSessionBtn = screen.getByRole('button', { name: /Iniciar nueva conversación limpia/i });
+    expect(newSessionBtn).toBeInTheDocument();
+
+    fireEvent.click(newSessionBtn);
+    expect(handleStartNewSession).toHaveBeenCalledTimes(1);
+  });
 });
 

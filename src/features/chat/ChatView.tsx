@@ -17,7 +17,6 @@ import { DraftEvaluationCard } from './DraftEvaluationCard';
 import {
   Send,
   Sparkles,
-  Trash2,
   Settings as SettingsIcon,
   Bot,
   User,
@@ -26,6 +25,7 @@ import {
   TrendingUp,
   Mic,
   MicOff,
+  RotateCcw,
 } from 'lucide-react';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 
@@ -251,11 +251,25 @@ Por favor verifica tu conexión y la configuración de tu clave en Ajustes.`,
       await db.chatMessages.update(messageId, {
         draftEvaluation: { ...msg.draftEvaluation, confirmed: true },
       });
+
+      const topicName = msg.draftEvaluation.topicName || 'Ámbito';
+      const followUpMsg: ChatMessage = {
+        id: `msg-${Date.now()}-done`,
+        role: 'assistant',
+        content: `🎉 **¡Evaluación de "${topicName}" guardada en tu historial!** (Nota final: **${evaluation.finalScore} / 10**)\n\n💡 **Recomendación**: Para optimizar el uso de tokens y mantener tus reflexiones enfocadas, te sugerimos iniciar una nueva sesión cuando desees evaluar otro momento o ámbito.`,
+        timestamp: Date.now() + 1,
+      };
+      await db.chatMessages.add(followUpMsg);
     }
   };
 
-  const handleClearChat = async () => {
-    if (window.confirm('¿Deseas vaciar el historial de conversación? Esta acción no borra tus notas ni tu historial de evaluaciones.')) {
+  const handleStartNewChat = async () => {
+    if (messages.length <= 1) return;
+    if (
+      window.confirm(
+        '¿Deseas iniciar una nueva sesión de conversación?\n\nSe reiniciará el chat para optimizar el consumo de tokens y tener una reflexión fresca. Tus evaluaciones guardadas permanecerán intactas en el historial.'
+      )
+    ) {
       await db.chatMessages.clear();
     }
   };
@@ -299,11 +313,12 @@ Por favor verifica tu conexión y la configuración de tu clave en Ajustes.`,
             <TrendingUp className="w-4 h-4" />
           </button>
           <button
-            onClick={handleClearChat}
-            title="Vaciar conversación"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-slate-800/80 transition-colors"
+            onClick={handleStartNewChat}
+            title="Iniciar nueva sesión (optimizar tokens)"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-300 hover:text-white bg-slate-800/90 hover:bg-slate-700/80 border border-slate-700/80 transition-all"
           >
-            <Trash2 className="w-4 h-4" />
+            <RotateCcw className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="hidden sm:inline">Nueva sesión</span>
           </button>
           <button
             onClick={onOpenSettings}
@@ -356,6 +371,7 @@ Por favor verifica tu conexión y la configuración de tu clave en Ajustes.`,
                   <DraftEvaluationCard
                     draft={m.draftEvaluation}
                     onConfirm={(evaluation) => handleConfirmDraft(m.id, evaluation)}
+                    onStartNewSession={handleStartNewChat}
                   />
                 )}
               </div>
