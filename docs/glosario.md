@@ -32,3 +32,29 @@ Este documento centraliza los conceptos, términos y definiciones del dominio de
 - **Definición**: Registro o modificación de evaluaciones y sensaciones correspondientes a fechas previas a la fecha actual.
 - **Alcance / Propósito**: Permitir al usuario completar días olvidados o rectificar notas y ponderaciones pasadas preservando la fecha en hora local y evitando desplazamientos por zona horaria UTC.
 - **Lo que NO es**: No altera las mediciones históricas sin acción deliberada del usuario.
+
+### Interfaz Conversacional (Chat)
+- **Definición**: Canal de interacción mediante texto en lenguaje natural integrado en la aplicación para registrar sensaciones inmediatas o completar auto-evaluaciones asistidas.
+- **Alcance / Propósito**: Reducir la fricción de entrada de datos ofreciendo un diálogo guiado y un parser offline rápido, complementando la interfaz tradicional de sliders.
+- **Lo que NO es**: No es un bot social ni de soporte externo; es un asistente local enfocado en la introspección y puntuación del usuario.
+
+### Check-in Rápido por Lenguaje Natural
+- **Definición**: Mecanismo de interpretación local basado en expresiones regulares y reglas determinísticas que extrae notas (1 a 10) y comentarios a partir de frases cotidianas (ej. "hoy me siento un 8").
+- **Alcance / Propósito**: Permitir asentar sensaciones diarias de forma ultrarrápida sin requerir conexión a internet ni consumo de tokens de IA.
+- **Lo que NO es**: No requiere modelos de lenguaje en la nube para frases directas de puntuación del día.
+
+### Evaluación Guiada por Chat (Conversational Scoring)
+- **Definición**: Proceso reflexivo interactivo donde el usuario relata acontecimientos o vivencias de un ámbito determinado y el asistente infiere y propone notas nominales (1 a 10) y justificaciones para cada criterio de ponderación del ámbito.
+- **Alcance / Propósito**: Asistir en la descomposición analítica de un día complejo en notas cuantitativas alineadas a la matriz del usuario.
+- **Lo que NO es**: No guarda la evaluación automáticamente sin la confirmación explícita del usuario.
+
+### Tarjeta de Borrador (Draft Card)
+- **Definición**: Componente interactivo renderizado en el hilo de conversación que presenta las notas propuestas y el promedio ponderado calculado antes de guardarse en la base de datos local.
+- **Alcance / Propósito**: Otorgar control total al usuario para ajustar sliders y notas sugeridas por la IA antes de confirmar el registro final.
+- **Lo que NO es**: No impacta en el historial ni en las métricas hasta que se presione el botón de confirmación.
+
+### BYOK (Bring Your Own Key)
+- **Definición**: Modelo de configuración donde el usuario ingresa su propia clave de API de un proveedor de IA (ej. Google Gemini, OpenAI o endpoint local tipo Ollama) para procesar sus conversaciones.
+- **Alcance / Propósito**: Preservar la arquitectura Zero-Backend y la privacidad total, garantizando que los datos viajen directamente entre el dispositivo del usuario y el proveedor elegido sin servidores intermediarios.
+- **Lo que NO es**: No almacena credenciales en ningún servidor central ni comparte claves entre dispositivos.
+

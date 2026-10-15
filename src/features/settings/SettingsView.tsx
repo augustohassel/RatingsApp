@@ -11,7 +11,16 @@ import {
   HardDrive,
   CheckCircle2,
   AlertTriangle,
+  Bot,
+  Key,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  Sparkles,
+  Server,
 } from 'lucide-react';
+import { getAiSettings, saveAiSettings, testAiConnection } from '../../services/aiService';
+import { AiSettings } from '../../types';
 
 export const SettingsView: React.FC = () => {
   const topicsCount = useLiveQuery(() => db.topics.count(), []) || 0;
@@ -20,6 +29,30 @@ export const SettingsView: React.FC = () => {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(
     null
   );
+
+  const [aiSettings, setAiSettings] = useState<AiSettings>(() => getAiSettings());
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [isTestingAi, setIsTestingAi] = useState(false);
+  const [testAiResult, setTestAiResult] = useState<{ success: boolean; message: string } | null>(
+    null
+  );
+
+  const handleSaveAiSettings = () => {
+    saveAiSettings(aiSettings);
+    setMessage({ type: 'success', text: 'Configuración de Asistente IA guardada exitosamente.' });
+  };
+
+  const handleTestAi = async () => {
+    setIsTestingAi(true);
+    setTestAiResult(null);
+    try {
+      const result = await testAiConnection(aiSettings);
+      setTestAiResult(result);
+    } finally {
+      setIsTestingAi(false);
+    }
+  };
+
 
   const handleExportJSON = async () => {
     try {
@@ -176,6 +209,176 @@ export const SettingsView: React.FC = () => {
               Evaluaciones
             </span>
             <span className="text-lg font-bold text-indigo-400">{evalsCount}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Assistant Settings (BYOK) */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Bot className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Asistente Conversacional (IA / BYOK)</span>
+          </h3>
+          <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-medium">
+            Zero-Backend
+          </span>
+        </div>
+
+        <div className="glass-card rounded-2xl p-4 border border-slate-800 space-y-4">
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            Traé tu propia clave de API (Bring Your Own Key) para habilitar el asistente reflexivo guiado. La clave se almacena exclusivamente en este navegador y viaja directo al proveedor sin intermediarios.
+          </p>
+
+          {/* Selector de Proveedor */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-300">Proveedor de IA</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setAiSettings((prev) => ({
+                    ...prev,
+                    provider: 'gemini',
+                    modelName: prev.provider === 'gemini' ? prev.modelName : 'gemini-1.5-flash',
+                  }))
+                }
+                className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
+                  aiSettings.provider === 'gemini'
+                    ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
+                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Google Gemini
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setAiSettings((prev) => ({
+                    ...prev,
+                    provider: 'openai',
+                    modelName: prev.provider === 'openai' ? prev.modelName : 'gpt-4o-mini',
+                  }))
+                }
+                className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
+                  aiSettings.provider === 'openai'
+                    ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
+                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                OpenAI / Compatible
+              </button>
+            </div>
+          </div>
+
+          {/* Input API Key */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <Key className="w-3.5 h-3.5 text-slate-400" />
+                <span>API Key {aiSettings.provider === 'openai' && aiSettings.baseUrl ? '(Opcional si es Ollama)' : ''}</span>
+              </label>
+              {aiSettings.provider === 'gemini' && (
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center gap-0.5 font-medium"
+                >
+                  Obtener gratis en Google AI Studio
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                type={showApiKey ? 'text' : 'password'}
+                value={aiSettings.apiKey}
+                onChange={(e) => setAiSettings({ ...aiSettings, apiKey: e.target.value })}
+                placeholder={
+                  aiSettings.provider === 'gemini'
+                    ? 'AIzaSy...'
+                    : 'sk-proj-...'
+                }
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowApiKey(!showApiKey)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+              >
+                {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Nombre de Modelo */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-slate-400" />
+              <span>Modelo</span>
+            </label>
+            <input
+              type="text"
+              value={aiSettings.modelName}
+              onChange={(e) => setAiSettings({ ...aiSettings, modelName: e.target.value })}
+              placeholder={aiSettings.provider === 'gemini' ? 'gemini-1.5-flash' : 'gpt-4o-mini'}
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          {/* Base URL (Para OpenAI / Ollama) */}
+          {aiSettings.provider === 'openai' && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <Server className="w-3.5 h-3.5 text-slate-400" />
+                <span>Base URL (Opcional para Ollama o local)</span>
+              </label>
+              <input
+                type="text"
+                value={aiSettings.baseUrl || ''}
+                onChange={(e) => setAiSettings({ ...aiSettings, baseUrl: e.target.value })}
+                placeholder="https://api.openai.com/v1 (o http://localhost:11434/v1)"
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 font-mono"
+              />
+            </div>
+          )}
+
+          {/* Feedback de prueba */}
+          {testAiResult && (
+            <div
+              className={`p-2.5 rounded-xl text-xs flex items-center gap-2 ${
+                testAiResult.success
+                  ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                  : 'bg-rose-500/10 border border-rose-500/20 text-rose-300'
+              }`}
+            >
+              {testAiResult.success ? (
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+              ) : (
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+              )}
+              <span>{testAiResult.message}</span>
+            </div>
+          )}
+
+          {/* Acciones Probar y Guardar */}
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleTestAi}
+              disabled={isTestingAi}
+              className="flex-1 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-slate-200 text-xs font-semibold transition-colors disabled:opacity-50"
+            >
+              {isTestingAi ? 'Probando...' : 'Probar Conexión'}
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveAiSettings}
+              className="flex-1 py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/30 transition-colors"
+            >
+              Guardar Configuración
+            </button>
           </div>
         </div>
       </div>

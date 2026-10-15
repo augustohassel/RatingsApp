@@ -1,7 +1,7 @@
 import React from 'react';
-import { LayoutDashboard, CheckCircle2, TrendingUp, Layers, Settings } from 'lucide-react';
+import { LayoutDashboard, CheckCircle2, TrendingUp, MessageSquare, Settings } from 'lucide-react';
 
-export type NavTab = 'dashboard' | 'evaluator' | 'history' | 'topics' | 'settings';
+export type NavTab = 'dashboard' | 'evaluator' | 'chat' | 'history' | 'topics' | 'settings';
 
 interface BottomNavProps {
   currentTab: NavTab;
@@ -11,11 +11,12 @@ interface BottomNavProps {
 export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onSelectTab }) => {
   const tabs = [
     { id: 'dashboard' as NavTab, label: 'Inicio', icon: LayoutDashboard },
+    { id: 'chat' as NavTab, label: 'Chat', icon: MessageSquare },
     { id: 'evaluator' as NavTab, label: 'Evaluar', icon: CheckCircle2, highlight: true },
     { id: 'history' as NavTab, label: 'Histórico', icon: TrendingUp },
-    { id: 'topics' as NavTab, label: 'Ámbitos', icon: Layers },
     { id: 'settings' as NavTab, label: 'Ajustes', icon: Settings },
   ];
+
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 glass-panel border-t border-slate-800/80 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 px-3">

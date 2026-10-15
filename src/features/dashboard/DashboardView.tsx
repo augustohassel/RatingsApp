@@ -15,19 +15,24 @@ import {
   Calendar,
   ArrowRight,
   Sparkles,
+  MessageSquare,
 } from 'lucide-react';
+
 
 interface DashboardViewProps {
   onStartEvaluation: (topicId: string) => void;
   onViewHistory: (topicId?: string, mode?: 'timeline' | 'matrix') => void;
   onOpenTopics: () => void;
+  onOpenChat?: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   onStartEvaluation,
   onViewHistory,
   onOpenTopics,
+  onOpenChat,
 }) => {
+
   const topics = useLiveQuery(() => db.topics.toArray(), []) || [];
   const evaluations = useLiveQuery(() => db.evaluations.orderBy('createdAt').reverse().toArray(), []) || [];
 
@@ -77,7 +82,34 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         onViewHistory={(topicId) => onViewHistory(topicId, 'timeline')}
       />
 
+      {/* Asistente Conversacional Card */}
+      {onOpenChat && (
+        <button
+          onClick={onOpenChat}
+          className="w-full text-left rounded-2xl bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-900 border border-indigo-500/30 p-4 shadow-lg hover:border-indigo-500/60 transition-all group flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-400/30 flex items-center justify-center text-indigo-400 group-hover:scale-105 transition-transform">
+              <MessageSquare className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400">
+                  Nuevo • Asistente de Chat
+                </span>
+              </div>
+              <h4 className="text-xs font-bold text-white">¿Querés registrar o evaluar charlando?</h4>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Escribe "hoy me siento 8" o reflexiona con IA guiada.
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+        </button>
+      )}
+
       {/* Topics Overview */}
+
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-300 tracking-wide uppercase">
