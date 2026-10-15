@@ -58,3 +58,14 @@ Este documento centraliza los conceptos, términos y definiciones del dominio de
 - **Alcance / Propósito**: Preservar la arquitectura Zero-Backend y la privacidad total, garantizando que los datos viajen directamente entre el dispositivo del usuario y el proveedor elegido sin servidores intermediarios.
 - **Lo que NO es**: No almacena credenciales en ningún servidor central ni comparte claves entre dispositivos.
 
+### Ventana Deslizante (Sliding Window Context)
+- **Definición**: Técnica de acotamiento del historial conversacional en la que solo se transmiten al proveedor de IA los últimos N turnos de diálogo (por defecto 10 mensajes entre usuario y asistente).
+- **Alcance / Propósito**: Limitar el consumo de tokens de entrada en la clave de API del usuario, evitar cobros innecesarios por historial antiguo acumulado y prevenir la degradación o dispersión de contexto (*context drift*).
+- **Lo que NO es**: No borra los mensajes anteriores de la base de datos local del usuario; solo delimita el payload transmitido a la API.
+
+### Sesión de Conversación (Chat Session)
+- **Definición**: Ciclo delimitado de intercambio reflexivo entre el usuario y el Asistente IA enfocado en una jornada o ámbito de evaluación concreto.
+- **Alcance / Propósito**: Incentivar al usuario a iniciar un hilo limpio una vez guardada una evaluación mediante acciones explícitas de "Nueva sesión", optimizando costos y garantizando que el asistente responda enfocado en el momento presente.
+- **Lo que NO es**: No elimina ni modifica las evaluaciones ya asentadas en el historial ni en las matrices anuales.
+
+

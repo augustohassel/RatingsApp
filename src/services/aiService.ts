@@ -25,51 +25,17 @@ export function saveAiSettings(settings: AiSettings): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
 }
 
-/**
- * Genera el System Prompt de RatingsApp para guiar la conversación
- */
-export function buildSystemPrompt(topics: Topic[], currentTopic?: Topic): string {
-  const topicsSummary = topics
-    .map((t) => {
-      const itemsList = t.items
-        .map((it) => `  - [ID: "${it.id}"] "${it.name}" (Peso por defecto: ${it.defaultWeight}/10${it.explanation ? ` - ${it.explanation}` : ''})`)
-        .join('\n');
-      return `Ámbito "${t.name}" [ID: "${t.id}"]:\n${itemsList}`;
-    })
-    .join('\n\n');
+import {
+  buildSystemPrompt,
+  BASE_ASSISTANT_INSTRUCTIONS,
+  formatTopicsForSystemPrompt,
+} from './prompts/systemPrompt';
 
-  return `Eres el Asistente Reflexivo de RatingsApp, una aplicación privada de evaluación y puntuación personal ponderada.
-Tu objetivo es escuchar al usuario reflexionar sobre su jornada, dialogar empáticamente y ayudarle a descomponer su día en valoraciones cuantitativas justas (escala de 1 a 10).
-
-Tus principios de interacción:
-1. Sé cálido, conciso, introspectivo y constructivo. No des discursos largos.
-2. Si el usuario te cuenta sobre su día o vivencias en un ámbito, haz preguntas breves de profundización si hace falta, o propón calificaciones para cada uno de los criterios.
-3. Las notas siempre son en escala de 1 a 10 (se admiten decimales como 7.5 u 8).
-4. Cuando consideres que tienes elementos suficientes para proponer una evaluación (o cuando el usuario te pida evaluar un ámbito), responde con tu análisis conversacional y al final incluye OBLIGATORIAMENTE un bloque de código JSON con el siguiente formato exacto:
-
-\`\`\`json
-{
-  "draftEvaluation": {
-    "topicId": "<ID_DEL_AMBITO>",
-    "scores": {
-      "<ITEM_ID_1>": 8,
-      "<ITEM_ID_2>": 7.5
-    },
-    "justifications": {
-      "<ITEM_ID_1>": "Breve justificación de por qué sugeriste esta nota",
-      "<ITEM_ID_2>": "Breve justificación"
-    },
-    "notes": "Reflexión o resumen síntesis de la jornada"
-  }
-}
-\`\`\`
-
-Ámbitos y criterios disponibles en RatingsApp:
-${topicsSummary}
-
-${currentTopic ? `Ámbito enfocado actualmente: "${currentTopic.name}" [ID: "${currentTopic.id}"]` : ''}
-`;
-}
+export {
+  buildSystemPrompt,
+  BASE_ASSISTANT_INSTRUCTIONS,
+  formatTopicsForSystemPrompt,
+};
 
 /**
  * Extrae y separa el bloque JSON de draftEvaluation si está presente en la respuesta del modelo
@@ -159,6 +125,40 @@ export async function sendChatMessage(
 }
 
 /**
+ * Límite predeterminado de mensajes de historial enviados al modelo para evitar desborde de tokens.
+ */
+export const MAX_HISTORY_MESSAGES = 10;
+
+export interface PreparedConversationTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/**
+ * Filtra, desduplica y recorta el historial a una ventana deslizante de longitud acotada.
+ */
+export function prepareHistoryWindow(
+  history: ChatMessage[],
+  newMessage: string,
+  maxMessages: number = MAX_HISTORY_MESSAGES
+): PreparedConversationTurn[] {
+  const validTurns: PreparedConversationTurn[] = history
+    .filter((m) => m.role === 'user' || m.role === 'assistant')
+    .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+
+  const trimmedNew = newMessage.trim();
+  const lastTurn = validTurns[validTurns.length - 1];
+
+  if (trimmedNew) {
+    if (!lastTurn || lastTurn.role !== 'user' || lastTurn.content.trim() !== trimmedNew) {
+      validTurns.push({ role: 'user', content: trimmedNew });
+    }
+  }
+
+  return validTurns.slice(-maxMessages);
+}
+
+/**
  * Cliente directo de Google Gemini (v1beta API con soporte direct browser CORS)
  */
 async function callGemini(
@@ -171,19 +171,13 @@ async function callGemini(
   const model = settings.modelName.trim() || 'gemini-1.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${settings.apiKey.trim()}`;
 
+  const conversationTurns = prepareHistoryWindow(history, newMessage);
+
   // Formato Gemini contents: role "user" o "model"
-  const contents = [
-    ...history
-      .filter((m) => m.role === 'user' || m.role === 'assistant')
-      .map((m) => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }],
-      })),
-    {
-      role: 'user',
-      parts: [{ text: newMessage }],
-    },
-  ];
+  const contents = conversationTurns.map((turn) => ({
+    role: turn.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: turn.content }],
+  }));
 
   const requestBody = {
     contents,
@@ -239,15 +233,14 @@ async function callOpenAI(
   baseUrl = baseUrl.replace(/\/+$/, '');
   const url = `${baseUrl}/chat/completions`;
 
+  const conversationTurns = prepareHistoryWindow(history, newMessage);
+
   const messages = [
     { role: 'system', content: systemPrompt },
-    ...history
-      .filter((m) => m.role === 'user' || m.role === 'assistant')
-      .map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
-    { role: 'user', content: newMessage },
+    ...conversationTurns.map((turn) => ({
+      role: turn.role,
+      content: turn.content,
+    })),
   ];
 
   const headers: Record<string, string> = {
