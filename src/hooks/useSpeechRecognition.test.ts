@@ -116,5 +116,120 @@ describe('useSpeechRecognition', () => {
     expect(result.current.isListening).toBe(false);
     expect(result.current.error).toContain('Permiso de micrófono denegado');
   });
+
+  it('handles interim and final results in sequence without duplicating words', () => {
+    let mockInstance: any = null;
+
+    class MockSpeechRecognition {
+      continuous = false;
+      interimResults = false;
+      lang = '';
+      onresult: any = null;
+      onerror: any = null;
+      onend: any = null;
+      start = vi.fn();
+      stop = vi.fn();
+      abort = vi.fn();
+
+      constructor() {
+        mockInstance = this;
+      }
+    }
+
+    window.SpeechRecognition = MockSpeechRecognition as any;
+
+    const handleResult = vi.fn();
+    const { result } = renderHook(() =>
+      useSpeechRecognition({ onResult: handleResult })
+    );
+
+    act(() => {
+      result.current.startListening();
+    });
+
+    // 1. Simular primer resultado provisional (interim)
+    act(() => {
+      mockInstance.onresult({
+        resultIndex: 0,
+        results: [
+          { 0: { transcript: 'esta' }, isFinal: false, length: 1 },
+        ],
+      });
+    });
+
+    expect(result.current.transcript).toBe('esta');
+    expect(result.current.interimTranscript).toBe('esta');
+    expect(result.current.finalTranscript).toBe('');
+    expect(handleResult).toHaveBeenLastCalledWith('esta');
+
+    // 2. Simular actualización del resultado provisional (más palabras habladas)
+    act(() => {
+      mockInstance.onresult({
+        resultIndex: 0,
+        results: [
+          { 0: { transcript: 'esta es una' }, isFinal: false, length: 1 },
+        ],
+      });
+    });
+
+    expect(result.current.transcript).toBe('esta es una');
+    expect(result.current.interimTranscript).toBe('esta es una');
+    expect(result.current.finalTranscript).toBe('');
+    expect(handleResult).toHaveBeenLastCalledWith('esta es una');
+
+    // 3. Simular consolidación de la primera frase como final
+    act(() => {
+      mockInstance.onresult({
+        resultIndex: 0,
+        results: [
+          { 0: { transcript: 'esta es una prueba' }, isFinal: true, length: 1 },
+        ],
+      });
+    });
+
+    expect(result.current.transcript).toBe('esta es una prueba');
+    expect(result.current.finalTranscript).toBe('esta es una prueba');
+    expect(result.current.interimTranscript).toBe('');
+    expect(handleResult).toHaveBeenLastCalledWith('esta es una prueba');
+
+    // 4. Simular que el usuario continúa hablando: una segunda frase provisional
+    act(() => {
+      mockInstance.onresult({
+        resultIndex: 1,
+        results: [
+          { 0: { transcript: 'esta es una prueba' }, isFinal: true, length: 1 },
+          { 0: { transcript: 'y funciona' }, isFinal: false, length: 1 },
+        ],
+      });
+    });
+
+    expect(result.current.transcript).toBe('esta es una prueba y funciona');
+    expect(result.current.finalTranscript).toBe('esta es una prueba');
+    expect(result.current.interimTranscript).toBe('y funciona');
+
+    // 5. Consolidación de la segunda frase
+    act(() => {
+      mockInstance.onresult({
+        resultIndex: 1,
+        results: [
+          { 0: { transcript: 'esta es una prueba' }, isFinal: true, length: 1 },
+          { 0: { transcript: 'y funciona perfecto' }, isFinal: true, length: 1 },
+        ],
+      });
+    });
+
+    expect(result.current.transcript).toBe('esta es una prueba y funciona perfecto');
+    expect(result.current.finalTranscript).toBe('esta es una prueba y funciona perfecto');
+    expect(result.current.interimTranscript).toBe('');
+
+    // 6. Reseteo manual
+    act(() => {
+      result.current.resetTranscript();
+    });
+
+    expect(result.current.transcript).toBe('');
+    expect(result.current.finalTranscript).toBe('');
+    expect(result.current.interimTranscript).toBe('');
+  });
 });
 
