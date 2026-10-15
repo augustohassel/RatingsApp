@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { ChatView } from './ChatView';
 import { db } from '../../db';
 
@@ -158,6 +158,93 @@ describe('ChatView - Dictado por voz (Speech Recognition)', () => {
     fireEvent.change(textarea, { target: { value: 'Escribiendo manualmente' } });
 
     expect(mockSpeechInstance.stop).toHaveBeenCalled();
+  });
+});
+
+describe('ChatView - Gestión de sesiones y optimización de tokens', () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    await db.chatMessages.clear();
+    await db.topics.clear();
+    await db.evaluations.clear();
+  });
+
+  it('renders "Nueva sesión" button and confirms before clearing chat', async () => {
+    await db.chatMessages.add({
+      id: 'msg-1',
+      role: 'user',
+      content: 'Mensaje previo',
+      timestamp: 1000,
+    });
+    await db.chatMessages.add({
+      id: 'msg-2',
+      role: 'assistant',
+      content: 'Respuesta previa',
+      timestamp: 1001,
+    });
+
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(
+      <ChatView
+        onOpenSettings={vi.fn()}
+        onNavigateToHistory={vi.fn()}
+      />
+    );
+
+    await screen.findByText('Mensaje previo');
+
+    const newSessionBtn = screen.getByTitle(/Iniciar nueva sesión/i);
+    expect(newSessionBtn).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(newSessionBtn);
+    });
+
+    expect(confirmSpy).toHaveBeenCalled();
+    const count = await db.chatMessages.count();
+    expect(count).toBeLessThanOrEqual(1);
+
+    confirmSpy.mockRestore();
+  });
+
+  it('adds recommendation message to start a new session after confirming draft evaluation', async () => {
+    const draftMsgId = 'msg-draft-1';
+    await db.chatMessages.add({
+      id: draftMsgId,
+      role: 'assistant',
+      content: 'Aquí tienes tu propuesta',
+      timestamp: 1000,
+      draftEvaluation: {
+        topicId: 'topic-work',
+        topicName: 'Trabajo',
+        items: [
+          { itemId: 'w-1', name: 'Salario', weight: 10, score: 8 },
+        ],
+        confirmed: false,
+      },
+    });
+
+    render(
+      <ChatView
+        onOpenSettings={vi.fn()}
+        onNavigateToHistory={vi.fn()}
+      />
+    );
+
+    const confirmBtn = await screen.findByRole('button', { name: /Confirmar y Guardar/i });
+    expect(confirmBtn).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(confirmBtn);
+    });
+
+    await waitFor(async () => {
+      const messages = await db.chatMessages.toArray();
+      const followUp = messages.find((m) => m.content.includes('Recomendación'));
+      expect(followUp).toBeDefined();
+      expect(followUp?.content).toContain('iniciar una nueva sesión');
+    });
   });
 });
 
