@@ -46,16 +46,28 @@ interface UseSpeechRecognitionOptions {
 export function useSpeechRecognition(options?: UseSpeechRecognitionOptions) {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
+  const [finalTranscript, setFinalTranscript] = useState("");
+  const [interimTranscript, setInterimTranscript] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const optionsRef = useRef(options);
+
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
+
   const isSupported =
     typeof window !== "undefined" &&
     Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // Ignorar si ya estaba detenido
+      }
     }
     setIsListening(false);
   }, []);
@@ -71,24 +83,50 @@ export function useSpeechRecognition(options?: UseSpeechRecognitionOptions) {
         window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognitionConstructor) return;
 
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {
+          // Ignorar si ya estaba cancelado
+        }
+      }
+
+      setTranscript("");
+      setFinalTranscript("");
+      setInterimTranscript("");
+
       const recognition = new SpeechRecognitionConstructor();
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.lang = options?.lang || "es-ES";
+      recognition.lang = optionsRef.current?.lang || "es-ES";
 
       recognition.onresult = (event: SpeechRecognitionEventLike) => {
-        let currentTranscript = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
+        const finalParts: string[] = [];
+        const interimParts: string[] = [];
+
+        for (let i = 0; i < event.results.length; i++) {
           const item = event.results[i];
-          if (item && item[0]) {
-            currentTranscript += item[0].transcript;
+          if (!item || !item[0]) continue;
+          const text = item[0].transcript ? item[0].transcript.trim() : "";
+          if (!text) continue;
+
+          if (item.isFinal) {
+            finalParts.push(text);
+          } else {
+            interimParts.push(text);
           }
         }
 
-        if (currentTranscript) {
-          setTranscript(currentTranscript);
-          if (options?.onResult) {
-            options.onResult(currentTranscript);
+        const currentFinal = finalParts.join(" ");
+        const currentInterim = interimParts.join(" ");
+        const combined = [currentFinal, currentInterim].filter(Boolean).join(" ");
+
+        if (combined) {
+          setTranscript(combined);
+          setFinalTranscript(currentFinal);
+          setInterimTranscript(currentInterim);
+          if (optionsRef.current?.onResult) {
+            optionsRef.current.onResult(combined);
           }
         }
       };
@@ -120,17 +158,23 @@ export function useSpeechRecognition(options?: UseSpeechRecognitionOptions) {
       setError((err as Error).message || "No se pudo iniciar el micrófono.");
       setIsListening(false);
     }
-  }, [isSupported, options]);
+  }, [isSupported]);
 
   const resetTranscript = useCallback(() => {
     setTranscript("");
+    setFinalTranscript("");
+    setInterimTranscript("");
     setError(null);
   }, []);
 
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
-        recognitionRef.current.abort();
+        try {
+          recognitionRef.current.abort();
+        } catch {
+          // Ignorar
+        }
       }
     };
   }, []);
@@ -139,6 +183,8 @@ export function useSpeechRecognition(options?: UseSpeechRecognitionOptions) {
     isSupported,
     isListening,
     transcript,
+    finalTranscript,
+    interimTranscript,
     error,
     startListening,
     stopListening,

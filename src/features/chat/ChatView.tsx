@@ -45,6 +45,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ onOpenSettings, onNavigateTo
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const baseTextRef = useRef('');
 
   const {
     isSupported: isSpeechSupported,
@@ -53,14 +54,24 @@ export const ChatView: React.FC<ChatViewProps> = ({ onOpenSettings, onNavigateTo
     startListening,
     stopListening,
   } = useSpeechRecognition({
-    onResult: (text) => {
-      setInputText((prev) => {
-        if (!prev) return text;
-        if (prev.endsWith(' ')) return `${prev}${text}`;
-        return `${prev} ${text}`;
-      });
+    onResult: (speechText) => {
+      const base = baseTextRef.current;
+      if (!base) {
+        setInputText(speechText);
+      } else {
+        setInputText(`${base} ${speechText}`);
+      }
     },
   });
+
+  const handleToggleListening = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      baseTextRef.current = inputText.trim();
+      startListening();
+    }
+  };
 
 
 
@@ -109,6 +120,10 @@ Soy tu asistente local de RatingsApp. Puedes usarme de dos formas:
     const trimmed = rawText.trim();
     if (!trimmed || isLoading) return;
 
+    if (isListening) {
+      stopListening();
+    }
+    baseTextRef.current = '';
     setInputText('');
 
     const userMsg: ChatMessage = {
@@ -416,7 +431,12 @@ Por favor verifica tu conexión y la configuración de tu clave en Ajustes.`,
             ref={textareaRef}
             rows={1}
             value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
+            onChange={(e) => {
+              setInputText(e.target.value);
+              if (isListening) {
+                stopListening();
+              }
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -437,13 +457,7 @@ Por favor verifica tu conexión y la configuración de tu clave en Ajustes.`,
           {isSpeechSupported && (
             <button
               type="button"
-              onClick={() => {
-                if (isListening) {
-                  stopListening();
-                } else {
-                  startListening();
-                }
-              }}
+              onClick={handleToggleListening}
               title={isListening ? 'Detener dictado por voz' : 'Dictar por voz'}
               className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all ${
                 isListening
