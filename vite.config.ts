@@ -61,5 +61,16 @@ export default defineConfig({
     watch: {
       usePolling: true
     }
-  }
+  },
+  test: {
+    globals: true,
+    environment: 'happy-dom',
+    setupFiles: ['./src/test/setup.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: ['node_modules/**', 'dist/**', '**/*.d.ts', '**/*.config.*', 'src/main.tsx'],
+    },
+  },
 });
+

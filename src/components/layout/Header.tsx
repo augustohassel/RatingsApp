@@ -1,12 +1,13 @@
 import React from 'react';
-import { Sparkles, ShieldCheck } from 'lucide-react';
+import { Sparkles, ShieldCheck, MessageSquare } from 'lucide-react';
 
 interface HeaderProps {
   title?: string;
   subtitle?: string;
+  onOpenChat?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title = 'RatingsApp', subtitle }) => {
+export const Header: React.FC<HeaderProps> = ({ title = 'RatingsApp', subtitle, onOpenChat }) => {
   return (
     <header className="sticky top-0 z-30 glass-panel border-b border-slate-800/80 px-4 py-3 sm:px-6">
       <div className="max-w-md mx-auto flex items-center justify-between">
@@ -28,7 +29,16 @@ export const Header: React.FC<HeaderProps> = ({ title = 'RatingsApp', subtitle }
             )}
           </div>
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
+          {onOpenChat && (
+            <button
+              onClick={onOpenChat}
+              title="Abrir Chat Reflexivo"
+              className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-indigo-400 transition-colors"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+            </button>
+          )}
           <span 
             className="text-[10px] font-mono font-medium text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-700/60 shadow-sm"
             title={`Versión instalada: v${__APP_VERSION__}`}
@@ -40,3 +50,4 @@ export const Header: React.FC<HeaderProps> = ({ title = 'RatingsApp', subtitle }
     </header>
   );
 };
+
