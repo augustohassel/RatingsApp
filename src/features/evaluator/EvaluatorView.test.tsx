@@ -59,8 +59,10 @@ describe('EvaluatorView - Selector de Ámbitos y Criterios', () => {
     });
 
     // Verificar que inicialmente se ven los criterios de Trabajo como texto estático
-    expect(screen.getByText('Salario y Beneficios')).toBeInTheDocument();
-    expect(screen.getByText('Relación con el Equipo')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Salario y Beneficios')).toBeInTheDocument();
+      expect(screen.getByText('Relación con el Equipo')).toBeInTheDocument();
+    });
 
     // Cambiar el dropdown a Natación
     fireEvent.change(selector, { target: { value: 'topic-swim' } });
@@ -99,7 +101,9 @@ describe('EvaluatorView - Selector de Ámbitos y Criterios', () => {
       return select;
     });
 
-    expect(screen.getByText(firstTopic.items[0].name)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(firstTopic.items[0].name)).toBeInTheDocument();
+    });
 
     // Cambiar al segundo ámbito funciona correctamente sin initialTopicId previo
     fireEvent.change(selector, { target: { value: secondTopic.id } });
