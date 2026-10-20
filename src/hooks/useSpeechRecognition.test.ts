@@ -231,5 +231,134 @@ describe('useSpeechRecognition', () => {
     expect(result.current.finalTranscript).toBe('');
     expect(result.current.interimTranscript).toBe('');
   });
+
+  it('replicates and prevents Android Chrome cumulative word duplication bug', () => {
+    let mockInstance: any = null;
+
+    class MockSpeechRecognition {
+      continuous = false;
+      interimResults = false;
+      lang = '';
+      onresult: any = null;
+      onerror: any = null;
+      onend: any = null;
+      start = vi.fn();
+      stop = vi.fn();
+      abort = vi.fn();
+
+      constructor() {
+        mockInstance = this;
+      }
+    }
+
+    window.SpeechRecognition = MockSpeechRecognition as any;
+
+    const handleResult = vi.fn();
+    const { result } = renderHook(() =>
+      useSpeechRecognition({ onResult: handleResult })
+    );
+
+    act(() => {
+      result.current.startListening();
+    });
+
+    // En Chrome para Android, cada elemento en event.results acumula toda la frase previa
+    act(() => {
+      mockInstance.onresult({
+        resultIndex: 3,
+        results: [
+          { 0: { transcript: 'hoy' }, isFinal: true, length: 1 },
+          { 0: { transcript: 'hoy me' }, isFinal: true, length: 1 },
+          { 0: { transcript: 'hoy me siento' }, isFinal: true, length: 1 },
+          { 0: { transcript: 'hoy me siento un 8' }, isFinal: true, length: 1 },
+        ],
+      });
+    });
+
+    expect(result.current.transcript).toBe('hoy me siento un 8');
+    expect(result.current.finalTranscript).toBe('hoy me siento un 8');
+    expect(result.current.interimTranscript).toBe('');
+    expect(handleResult).toHaveBeenLastCalledWith('hoy me siento un 8');
+  });
+
+  it('handles Android cumulative updates with accent refinements, number conversion, and overlapping interim results', () => {
+    let mockInstance: any = null;
+
+    class MockSpeechRecognition {
+      continuous = false;
+      interimResults = false;
+      lang = '';
+      onresult: any = null;
+      onerror: any = null;
+      onend: any = null;
+      start = vi.fn();
+      stop = vi.fn();
+      abort = vi.fn();
+
+      constructor() {
+        mockInstance = this;
+      }
+    }
+
+    window.SpeechRecognition = MockSpeechRecognition as any;
+
+    const handleResult = vi.fn();
+    const { result } = renderHook(() =>
+      useSpeechRecognition({ onResult: handleResult })
+    );
+
+    act(() => {
+      result.current.startListening();
+    });
+
+    // 1. Tildes añadidas dinámicamente y resultado interim que repite el final
+    act(() => {
+      mockInstance.onresult({
+        resultIndex: 2,
+        results: [
+          { 0: { transcript: 'sensacion' }, isFinal: true, length: 1 },
+          { 0: { transcript: 'sensacion del dia' }, isFinal: true, length: 1 },
+          { 0: { transcript: 'Sensación del día ocho' }, isFinal: false, length: 1 },
+        ],
+      });
+    });
+
+    expect(result.current.transcript).toBe('Sensación del día ocho');
+    expect(result.current.finalTranscript).toBe('sensacion del dia');
+    expect(result.current.interimTranscript).toBe('ocho');
+
+    // 2. Conversión de número en texto ("ocho") a dígito ("8") al continuar hablando
+    act(() => {
+      mockInstance.onresult({
+        resultIndex: 3,
+        results: [
+          { 0: { transcript: 'sensacion' }, isFinal: true, length: 1 },
+          { 0: { transcript: 'sensacion del dia' }, isFinal: true, length: 1 },
+          { 0: { transcript: 'Sensación del día ocho' }, isFinal: true, length: 1 },
+          { 0: { transcript: 'Sensación del día 8 dormí muy bien' }, isFinal: true, length: 1 },
+        ],
+      });
+    });
+
+    expect(result.current.transcript).toBe('Sensación del día 8 dormí muy bien');
+    expect(result.current.finalTranscript).toBe('Sensación del día 8 dormí muy bien');
+    expect(result.current.interimTranscript).toBe('');
+
+    // 3. Segunda frase tras una pausa, también emitida de forma acumulativa en Android
+    act(() => {
+      mockInstance.onresult({
+        resultIndex: 5,
+        results: [
+          { 0: { transcript: 'Sensación del día 8 dormí muy bien' }, isFinal: true, length: 1 },
+          { 0: { transcript: 'y logre' }, isFinal: true, length: 1 },
+          { 0: { transcript: 'y logré entrenar' }, isFinal: true, length: 1 },
+        ],
+      });
+    });
+
+    expect(result.current.transcript).toBe('Sensación del día 8 dormí muy bien y logré entrenar');
+    expect(handleResult).toHaveBeenLastCalledWith('Sensación del día 8 dormí muy bien y logré entrenar');
+  });
 });
+
 
