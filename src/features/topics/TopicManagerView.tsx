@@ -3,7 +3,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { Topic } from '../../types';
 import { TopicFormModal } from './TopicFormModal';
-import { Plus, Edit2, Trash2, Layers, Briefcase, Activity, Smile, CheckCircle2, Shield } from 'lucide-react';
+import { TopicIcon } from '../../components/common/TopicIcon';
+import { Plus, Edit2, Trash2, Layers, CheckCircle2, Shield } from 'lucide-react';
 import { DAILY_MOOD_TOPIC_ID } from '../../types';
 
 interface TopicManagerViewProps {
@@ -104,13 +105,7 @@ export const TopicManagerView: React.FC<TopicManagerViewProps> = ({
                     className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-md"
                     style={{ backgroundColor: topic.color || '#6366f1' }}
                   >
-                    {topic.icon === 'Waves' ? (
-                      <Activity className="w-5 h-5" />
-                    ) : topic.icon === 'Smile' ? (
-                      <Smile className="w-5 h-5" />
-                    ) : (
-                      <Briefcase className="w-5 h-5" />
-                    )}
+                    <TopicIcon name={topic.icon} className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">
