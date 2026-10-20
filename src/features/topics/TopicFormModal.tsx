@@ -2,13 +2,29 @@ import React, { useState } from 'react';
 import { Topic, TopicItemDefinition } from '../../types';
 import { db } from '../../db';
 import { AutoResizeTextarea } from '../../components/common/AutoResizeTextarea';
-import { X, Plus, Trash2, Check, Sparkles, Briefcase, Activity, Heart, Target, BookOpen, Smile } from 'lucide-react';
+import { TopicIcon, AVAILABLE_TOPIC_ICONS } from '../../components/common/TopicIcon';
+import { X, Plus, Minus, Trash2, Check } from 'lucide-react';
 
 interface TopicFormModalProps {
   topic?: Topic | null;
   onClose: () => void;
   onSaved: () => void;
 }
+
+export const TOPIC_COLORS = [
+  '#6366f1', // Indigo
+  '#3b82f6', // Blue
+  '#06b6d4', // Cyan
+  '#0d9488', // Teal
+  '#10b981', // Emerald
+  '#84cc16', // Lime
+  '#f59e0b', // Amber
+  '#f97316', // Orange
+  '#ef4444', // Red
+  '#ec4899', // Pink
+  '#d946ef', // Fuchsia
+  '#8b5cf6', // Violet
+];
 
 export const TopicFormModal: React.FC<TopicFormModalProps> = ({
   topic,
@@ -27,7 +43,7 @@ export const TopicFormModal: React.FC<TopicFormModalProps> = ({
     ]
   );
 
-  const colors = ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
+  const colors = TOPIC_COLORS;
 
   const handleAddItem = () => {
     const newItem: TopicItemDefinition = {
@@ -58,7 +74,15 @@ export const TopicFormModal: React.FC<TopicFormModalProps> = ({
       return;
     }
 
-    const filteredItems = items.filter((it) => it.name.trim().length > 0);
+    const filteredItems = items
+      .filter((it) => it.name.trim().length > 0)
+      .map((it) => ({
+        ...it,
+        name: it.name.trim(),
+        explanation: it.explanation?.trim() || '',
+        defaultWeight: Math.min(10, Math.max(1, Number(it.defaultWeight) || 5)),
+      }));
+
     if (filteredItems.length === 0) {
       alert('Debe tener al menos un criterio con nombre.');
       return;
@@ -92,10 +116,11 @@ export const TopicFormModal: React.FC<TopicFormModalProps> = ({
         <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-md"
+              data-testid="topic-header-icon"
+              className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-md transition-colors"
               style={{ backgroundColor: color }}
             >
-              <Sparkles className="w-4 h-4" />
+              <TopicIcon name={icon} className="w-4 h-4" />
             </div>
             <h3 className="font-bold text-white text-base">
               {isEditing ? 'Editar Ámbito' : 'Nuevo Ámbito de Evaluación'}
@@ -103,6 +128,7 @@ export const TopicFormModal: React.FC<TopicFormModalProps> = ({
           </div>
           <button
             onClick={onClose}
+            aria-label="Cerrar modal"
             className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition-colors"
           >
             <X className="w-5 h-5" />
@@ -145,14 +171,15 @@ export const TopicFormModal: React.FC<TopicFormModalProps> = ({
               <label className="text-xs font-semibold text-slate-300 block mb-1.5">
                 Color de identificación
               </label>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {colors.map((c) => (
                   <button
                     key={c}
                     type="button"
+                    aria-label={`Color ${c}`}
                     onClick={() => setColor(c)}
-                    className={`w-8 h-8 rounded-full border-2 transition-transform ${
-                      color === c ? 'scale-110 border-white' : 'border-transparent'
+                    className={`w-7 h-7 rounded-full border-2 transition-transform ${
+                      color === c ? 'scale-110 border-white ring-2 ring-white/20' : 'border-transparent hover:scale-105'
                     }`}
                     style={{ backgroundColor: c }}
                   />
@@ -165,29 +192,23 @@ export const TopicFormModal: React.FC<TopicFormModalProps> = ({
               <label className="text-xs font-semibold text-slate-300 block mb-1.5">
                 Ícono
               </label>
-              <div className="flex items-center gap-2">
-                {[
-                  { name: 'Briefcase', icon: Briefcase },
-                  { name: 'Activity', icon: Activity },
-                  { name: 'Heart', icon: Heart },
-                  { name: 'Target', icon: Target },
-                  { name: 'BookOpen', icon: BookOpen },
-                  { name: 'Smile', icon: Smile },
-                ].map((item) => {
-                  const IconComp = item.icon;
+              <div className="flex flex-wrap items-center gap-2">
+                {AVAILABLE_TOPIC_ICONS.map((item) => {
                   const isSelected = icon === item.name;
                   return (
                     <button
                       key={item.name}
                       type="button"
+                      title={item.label}
+                      aria-label={`Ícono ${item.name}`}
                       onClick={() => setIcon(item.name)}
                       className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all ${
                         isSelected
-                          ? 'bg-indigo-600 text-white border-indigo-400 scale-105 shadow-md shadow-indigo-600/30'
-                          : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
+                          ? 'bg-indigo-600 text-white border-indigo-400 scale-105 shadow-md shadow-indigo-600/30 ring-2 ring-indigo-400/30'
+                          : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
                       }`}
                     >
-                      <IconComp className="w-4 h-4" />
+                      <TopicIcon name={item.name} className="w-4 h-4" />
                     </button>
                   );
                 })}
@@ -227,23 +248,47 @@ export const TopicFormModal: React.FC<TopicFormModalProps> = ({
                       onChange={(e) => handleUpdateItem(idx, 'name', e.target.value)}
                       className="flex-1 bg-transparent text-xs font-semibold text-white focus:outline-none focus:border-b focus:border-indigo-500 py-0.5 leading-snug"
                     />
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] text-slate-400">Peso:</span>
-                      <input
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={item.defaultWeight}
-                        onChange={(e) =>
-                          handleUpdateItem(idx, 'defaultWeight', Number(e.target.value))
-                        }
-                        className="w-12 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white text-center font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                      />
+
+                    {/* Stepper táctil para peso (1 a 10) */}
+                    <div className="flex items-center gap-1.5 shrink-0 bg-slate-950/80 px-2 py-1 rounded-xl border border-slate-800">
+                      <span className="text-[11px] text-slate-400 font-medium select-none">Peso:</span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          aria-label={`Disminuir peso de ${item.name || `criterio ${idx + 1}`}`}
+                          disabled={item.defaultWeight <= 1}
+                          onClick={() =>
+                            handleUpdateItem(idx, 'defaultWeight', Math.max(1, (item.defaultWeight || 1) - 1))
+                          }
+                          className="w-6 h-6 rounded-md bg-slate-800 hover:bg-slate-700 active:scale-95 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center text-slate-200 transition-all"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span
+                          className="w-6 text-center text-xs font-bold text-white tabular-nums select-none"
+                          data-testid={`weight-value-${idx}`}
+                        >
+                          {item.defaultWeight}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label={`Aumentar peso de ${item.name || `criterio ${idx + 1}`}`}
+                          disabled={item.defaultWeight >= 10}
+                          onClick={() =>
+                            handleUpdateItem(idx, 'defaultWeight', Math.min(10, (item.defaultWeight || 10) + 1))
+                          }
+                          className="w-6 h-6 rounded-md bg-slate-800 hover:bg-slate-700 active:scale-95 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center text-slate-200 transition-all"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
+
                     {items.length > 1 && (
                       <button
                         type="button"
                         onClick={() => handleRemoveItem(idx)}
+                        aria-label={`Eliminar criterio ${idx + 1}`}
                         className="text-slate-600 hover:text-rose-400 p-1"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
