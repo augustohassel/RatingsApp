@@ -66,15 +66,24 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
     }
   }, [editingEvaluationId]);
 
-  // Keep selectedTopicId in sync with props or first available topic
+  // Synchronize selectedTopicId when initialTopicId prop changes
   useEffect(() => {
     if (editingEvaluationId) return;
     if (initialTopicId) {
       setSelectedTopicId(initialTopicId);
-    } else if (topics.length > 0 && !selectedTopicId) {
-      setSelectedTopicId(topics[0].id);
     }
-  }, [initialTopicId, topics, selectedTopicId, editingEvaluationId]);
+  }, [initialTopicId, editingEvaluationId]);
+
+  // Set default topic if none is selected yet, or if current selection is invalid once topics load
+  useEffect(() => {
+    if (editingEvaluationId) return;
+    if (topics.length > 0) {
+      const exists = topics.some((t) => t.id === selectedTopicId);
+      if (!selectedTopicId || !exists) {
+        setSelectedTopicId(topics[0].id);
+      }
+    }
+  }, [topics, selectedTopicId, editingEvaluationId]);
 
   const currentTopic = useMemo(() => {
     return topics.find((t) => t.id === selectedTopicId);
@@ -100,6 +109,7 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
         score: 8, // Sensible starting score (or default 7/8)
       }));
       setItems(initialItems);
+      setExpandedInfo({});
     }
   }, [currentTopic, editingEvaluationId]);
 
@@ -253,13 +263,15 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
 
       {/* Topic Switcher Dropdown */}
       <div className="flex items-center justify-between gap-3">
-        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+        <label htmlFor="topic-selector" className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
           Ámbito:
         </label>
         <div className="relative flex-1">
           <select
+            id="topic-selector"
+            aria-label="Seleccionar ámbito"
             value={selectedTopicId}
-            disabled={Boolean(editingEvaluation)}
+            disabled={Boolean(editingEvaluation || editingEvaluationId)}
             onChange={(e) => setSelectedTopicId(e.target.value)}
             className="w-full appearance-none bg-slate-900 border border-slate-700/80 rounded-xl py-2 px-3 pr-8 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-75 disabled:cursor-not-allowed"
           >
