@@ -58,9 +58,9 @@ describe('EvaluatorView - Selector de Ámbitos y Criterios', () => {
       return select;
     });
 
-    // Verificar que inicialmente se ven los criterios de Trabajo
-    expect(screen.getByDisplayValue('Salario y Beneficios')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Relación con el Equipo')).toBeInTheDocument();
+    // Verificar que inicialmente se ven los criterios de Trabajo como texto estático
+    expect(screen.getByText('Salario y Beneficios')).toBeInTheDocument();
+    expect(screen.getByText('Relación con el Equipo')).toBeInTheDocument();
 
     // Cambiar el dropdown a Natación
     fireEvent.change(selector, { target: { value: 'topic-swim' } });
@@ -72,13 +72,13 @@ describe('EvaluatorView - Selector de Ámbitos y Criterios', () => {
 
     // Deben cargarse reactivamente los criterios de Natación
     await waitFor(() => {
-      expect(screen.getByDisplayValue('Resistencia Aeróbica')).toBeInTheDocument();
-      expect(screen.getByDisplayValue('Técnica de Crol')).toBeInTheDocument();
+      expect(screen.getByText('Resistencia Aeróbica')).toBeInTheDocument();
+      expect(screen.getByText('Técnica de Crol')).toBeInTheDocument();
     });
 
     // Los criterios de Trabajo ya no deben estar en pantalla
-    expect(screen.queryByDisplayValue('Salario y Beneficios')).not.toBeInTheDocument();
-    expect(screen.queryByDisplayValue('Relación con el Equipo')).not.toBeInTheDocument();
+    expect(screen.queryByText('Salario y Beneficios')).not.toBeInTheDocument();
+    expect(screen.queryByText('Relación con el Equipo')).not.toBeInTheDocument();
   });
 
   it('selecciona automáticamente el primer ámbito disponible si no se provee initialTopicId', async () => {
@@ -99,14 +99,14 @@ describe('EvaluatorView - Selector de Ámbitos y Criterios', () => {
       return select;
     });
 
-    expect(screen.getByDisplayValue(firstTopic.items[0].name)).toBeInTheDocument();
+    expect(screen.getByText(firstTopic.items[0].name)).toBeInTheDocument();
 
     // Cambiar al segundo ámbito funciona correctamente sin initialTopicId previo
     fireEvent.change(selector, { target: { value: secondTopic.id } });
 
     await waitFor(() => {
       expect(selector.value).toBe(secondTopic.id);
-      expect(screen.getByDisplayValue(secondTopic.items[0].name)).toBeInTheDocument();
+      expect(screen.getByText(secondTopic.items[0].name)).toBeInTheDocument();
     });
   });
 
@@ -171,7 +171,7 @@ describe('EvaluatorView - Selector de Ámbitos y Criterios', () => {
     fireEvent.change(selector, { target: { value: 'topic-swim' } });
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue('Resistencia Aeróbica')).toBeInTheDocument();
+      expect(screen.getByText('Resistencia Aeróbica')).toBeInTheDocument();
     });
 
     // Guardar evaluación
@@ -186,6 +186,116 @@ describe('EvaluatorView - Selector de Ámbitos y Criterios', () => {
     expect(savedEvals.length).toBe(1);
     expect(savedEvals[0].topicId).toBe('topic-swim');
     expect(savedEvals[0].items.some((i) => i.name === 'Resistencia Aeróbica')).toBe(true);
+  });
+
+  describe('Simplificación de Evaluación (Issue #23 - Sólo Lectura en Ponderaciones y Criterios)', () => {
+    it('muestra los nombres de criterios como texto estático y no como textareas o inputs editables', async () => {
+      render(
+        <EvaluatorView
+          initialTopicId="topic-work"
+          onEvaluationSaved={vi.fn()}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Salario y Beneficios')).toBeInTheDocument();
+      });
+
+      // No debe haber inputs o textareas con el nombre del criterio
+      expect(screen.queryByDisplayValue('Salario y Beneficios')).not.toBeInTheDocument();
+      expect(screen.queryByDisplayValue('Relación con el Equipo')).not.toBeInTheDocument();
+    });
+
+    it('muestra el peso y porcentaje de importancia como etiquetas informativas de lectura', async () => {
+      render(
+        <EvaluatorView
+          initialTopicId="topic-work"
+          onEvaluationSaved={vi.fn()}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Salario y Beneficios')).toBeInTheDocument();
+      });
+
+      // Topic work tiene 2 items con pesos 8 y 6 (total = 14)
+      // 8 / 14 = 57.1%
+      // 6 / 14 = 42.9%
+      expect(screen.getByText('57.1%')).toBeInTheDocument();
+      expect(screen.getByText('42.9%')).toBeInTheDocument();
+
+      // Badges de peso
+      expect(screen.getByText((_, el) => el?.textContent === 'Peso: 8')).toBeInTheDocument();
+      expect(screen.getByText((_, el) => el?.textContent === 'Peso: 6')).toBeInTheDocument();
+    });
+
+    it('únicamente renderiza un slider por criterio correspondiente a la nota actual (1 a 10)', async () => {
+      render(
+        <EvaluatorView
+          initialTopicId="topic-work"
+          onEvaluationSaved={vi.fn()}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Salario y Beneficios')).toBeInTheDocument();
+      });
+
+      // Debe haber exactamente 2 sliders (uno por cada criterio de mockTopicWork, para la nota actual)
+      const sliders = screen.getAllByRole('slider');
+      expect(sliders).toHaveLength(2);
+
+      expect(sliders[0]).toHaveAttribute('aria-label', 'Nota para Salario y Beneficios');
+      expect(sliders[1]).toHaveAttribute('aria-label', 'Nota para Relación con el Equipo');
+
+      // Modificar el slider de nota actualiza el score
+      fireEvent.change(sliders[0], { target: { value: '10' } });
+      expect(sliders[0]).toHaveValue('10');
+    });
+
+    it('permite desplegar y contraer la ayuda memoria como texto informativo', async () => {
+      render(
+        <EvaluatorView
+          initialTopicId="topic-work"
+          onEvaluationSaved={vi.fn()}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Salario y Beneficios')).toBeInTheDocument();
+      });
+
+      // La explicación inicialmente no está visible
+      expect(screen.queryByText('Compensación mensual')).not.toBeInTheDocument();
+
+      // Botón para ver explicación
+      const infoButton = screen.getByLabelText('Ver explicación de Salario y Beneficios');
+      fireEvent.click(infoButton);
+
+      // Ahora se visualiza como texto plano
+      expect(screen.getByText('Compensación mensual')).toBeInTheDocument();
+      expect(screen.queryByDisplayValue('Compensación mensual')).not.toBeInTheDocument();
+
+      // Al volver a hacer clic, se contrae
+      fireEvent.click(infoButton);
+      expect(screen.queryByText('Compensación mensual')).not.toBeInTheDocument();
+    });
+
+    it('no muestra botones para añadir ni eliminar criterios en la vista de evaluación', async () => {
+      render(
+        <EvaluatorView
+          initialTopicId="topic-work"
+          onEvaluationSaved={vi.fn()}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Salario y Beneficios')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText(/Añadir otro criterio a esta evaluación/i)).not.toBeInTheDocument();
+      expect(screen.queryByTitle(/Eliminar criterio/i)).not.toBeInTheDocument();
+    });
   });
 });
 

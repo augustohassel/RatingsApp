@@ -14,7 +14,6 @@ import { AutoResizeTextarea } from '../../components/common/AutoResizeTextarea';
 import {
   Info,
   Plus,
-  Trash2,
   CheckCircle2,
   ChevronDown,
   Calendar,
@@ -118,14 +117,6 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
     return calculateWeightedRating(items);
   }, [items]);
 
-  const handleWeightChange = (index: number, newWeight: number) => {
-    setItems((prev) => {
-      const copy = [...prev];
-      copy[index] = { ...copy[index], weight: newWeight };
-      return copy;
-    });
-  };
-
   const handleScoreChange = (index: number, newScore: number) => {
     setItems((prev) => {
       const copy = [...prev];
@@ -136,23 +127,6 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
 
   const handleToggleInfo = (itemId: string) => {
     setExpandedInfo((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
-  };
-
-  const handleAddCustomItem = () => {
-    const newItemId = `custom-${Date.now()}`;
-    const newItem: RawItemInput = {
-      itemId: newItemId,
-      name: 'Nuevo Criterio',
-      explanation: 'Criterio añadido en esta evaluación',
-      weight: 5,
-      score: 7,
-    };
-    setItems((prev) => [...prev, newItem]);
-    setExpandedInfo((prev) => ({ ...prev, [newItemId]: true }));
-  };
-
-  const handleRemoveItem = (index: number) => {
-    setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSave = async () => {
@@ -321,7 +295,7 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-            Ponderaciones y Calificaciones
+            Calificaciones de Criterios
           </h3>
           <span className="text-[11px] text-slate-400">Escala de 1 a 10</span>
         </div>
@@ -335,103 +309,55 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
               key={item.itemId}
               className="glass-card rounded-2xl p-4 border border-slate-800 space-y-3 transition-all hover:border-slate-700/80"
             >
-              {/* Item Header */}
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-slate-500 tabular-nums">
+              {/* Item Header: Name (read-only), info toggle & weight badges */}
+              <div className="space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2 flex-1 min-w-0">
+                    <span className="text-xs font-semibold text-slate-500 tabular-nums mt-0.5">
                       #{index + 1}
                     </span>
-                    <AutoResizeTextarea
-                      minRows={1}
-                      value={item.name}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setItems((prev) => {
-                          const copy = [...prev];
-                          copy[index] = { ...copy[index], name: val };
-                          return copy;
-                        });
-                      }}
-                      className="bg-transparent text-sm font-semibold text-white focus:outline-none focus:border-b focus:border-indigo-500 flex-1 py-0.5 leading-snug"
-                    />
+                    <span className="text-sm font-semibold text-white leading-snug break-words">
+                      {item.name}
+                    </span>
                     {item.explanation && (
                       <button
+                        type="button"
                         onClick={() => handleToggleInfo(item.itemId)}
-                        className={`p-1 rounded-md text-xs transition-colors ${
+                        className={`p-1 rounded-md text-xs transition-colors flex-shrink-0 mt-[-2px] ${
                           isExpanded ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-400 hover:text-slate-200'
                         }`}
-                        title="Ver explicación"
+                        title={isExpanded ? 'Ocultar explicación' : 'Ver explicación'}
+                        aria-label={`Ver explicación de ${item.name}`}
                       >
                         <Info className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
 
-                  {/* Explanation box */}
-                  {(isExpanded || !item.explanation) && (
-                    <div className="mt-1.5 text-xs text-slate-400 bg-slate-900/60 rounded-lg p-2 border border-slate-800">
-                      <AutoResizeTextarea
-                        minRows={1}
-                        placeholder="Explicación / ayuda memoria..."
-                        value={item.explanation || ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setItems((prev) => {
-                            const copy = [...prev];
-                            copy[index] = { ...copy[index], explanation: val };
-                            return copy;
-                          });
-                        }}
-                        className="w-full bg-transparent text-[11px] text-slate-300 placeholder-slate-500 focus:outline-none leading-relaxed"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Delete button if extra item */}
-                {items.length > 1 && (
-                  <button
-                    onClick={() => handleRemoveItem(index)}
-                    className="text-slate-600 hover:text-rose-400 p-1 transition-colors"
-                    title="Eliminar criterio"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-
-              {/* Slider 1: Ponderación (Importancia) */}
-              <div className="space-y-1 pt-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400 font-medium">
-                    Importancia (Ponderación):
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold">
-                      {calculatedItem ? calculatedItem.percentage.toFixed(1) : 0}% del total
+                  {/* Informational Read-only Badges: Weight and Percentage */}
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className="text-[11px] px-2 py-0.5 rounded-md bg-slate-800/80 text-slate-300 border border-slate-700/80 font-medium">
+                      Peso: <span className="text-white font-bold">{item.weight}</span>
                     </span>
-                    <span className="text-white font-bold tabular-nums w-5 text-right">
-                      {item.weight}
+                    <span className="text-[11px] px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold tabular-nums">
+                      {calculatedItem ? calculatedItem.percentage.toFixed(1) : 0}%
                     </span>
                   </div>
                 </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  step="1"
-                  value={item.weight}
-                  onChange={(e) => handleWeightChange(index, Number(e.target.value))}
-                  className="w-full"
-                />
+
+                {/* Static Explanation Box */}
+                {isExpanded && item.explanation && (
+                  <div className="text-xs text-slate-300 bg-slate-900/60 rounded-xl p-2.5 border border-slate-800 leading-relaxed">
+                    {item.explanation}
+                  </div>
+                )}
               </div>
 
-              {/* Slider 2: Nota Actual (Valorización) */}
-              <div className="space-y-1 pt-1">
+              {/* Slider: Nota Actual (Valorización) */}
+              <div className="space-y-1.5 pt-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-400 font-medium">
-                    Nota actual (Cómo me siento):
+                    Nota actual:
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-emerald-400/90 font-medium">
@@ -447,6 +373,7 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
                   min="1"
                   max="10"
                   step="1"
+                  aria-label={`Nota para ${item.name}`}
                   value={item.score}
                   onChange={(e) => handleScoreChange(index, Number(e.target.value))}
                   className="w-full accent-emerald-500"
@@ -455,15 +382,6 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
             </div>
           );
         })}
-
-        {/* Add custom criteria button */}
-        <button
-          onClick={handleAddCustomItem}
-          className="w-full py-2.5 border border-dashed border-slate-700 hover:border-indigo-500/50 rounded-2xl text-slate-400 hover:text-indigo-400 text-xs font-semibold flex items-center justify-center gap-2 transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          Añadir otro criterio a esta evaluación
-        </button>
       </div>
 
       {/* Reflections / Notes Box */}
