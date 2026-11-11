@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, exportBackup, importBackup, resetDatabase, clearAllDatabase } from '../../db';
 import {
@@ -50,8 +50,9 @@ export const SettingsView: React.FC = () => {
 
   const [syncState, setSyncState] = useState<SyncStatusSnapshot>(() => syncManager.getSnapshot());
   const [isSyncBusy, setIsSyncBusy] = useState(false);
-  const [showAdvancedSync, setShowAdvancedSync] = useState(false);
+  const [showAdvancedSync, setShowAdvancedSync] = useState(() => !syncManager.getSnapshot().isConfigured);
   const [customClientId, setCustomClientId] = useState(() => getConfiguredGoogleClientId());
+  const clientIdInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setSyncState(syncManager.getSnapshot());
@@ -412,9 +413,20 @@ export const SettingsView: React.FC = () => {
           {!syncState.isConnected ? (
             <button
               type="button"
-              onClick={handleConnectDrive}
-              disabled={isSyncBusy || !syncState.isConfigured}
-              className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-md shadow-indigo-600/30 transition-colors"
+              onClick={() => {
+                if (!syncState.isConfigured) {
+                  setShowAdvancedSync(true);
+                  setTimeout(() => clientIdInputRef.current?.focus(), 0);
+                  return;
+                }
+                void handleConnectDrive();
+              }}
+              disabled={isSyncBusy}
+              className={`w-full py-2.5 px-3 rounded-xl text-white text-xs font-semibold flex items-center justify-center gap-2 transition-colors ${
+                syncState.isConfigured
+                  ? 'bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/30 disabled:opacity-50'
+                  : 'bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200'
+              }`}
             >
               <Cloud className="w-4 h-4" />
               <span>
@@ -521,6 +533,7 @@ export const SettingsView: React.FC = () => {
                   </label>
                   <div className="flex gap-2">
                     <input
+                      ref={clientIdInputRef}
                       type="text"
                       value={customClientId}
                       onChange={(e) => setCustomClientId(e.target.value)}
