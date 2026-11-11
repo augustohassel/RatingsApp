@@ -1,4 +1,4 @@
-name: Terraform Validate
+name: Terraform Infrastructure CI/CD
 
 on:
   push:
@@ -17,6 +17,14 @@ on:
       - 'infra/**'
       - '.github/workflows/terraform-validate.yml'
   workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: terraform-infra
+  cancel-in-progress: false
 
 jobs:
   validate:
@@ -43,3 +51,75 @@ jobs:
       - name: Validar sintaxis y tipos (terraform validate)
         run: terraform validate
 
+  plan:
+    name: Terraform Plan (GCP OIDC)
+    needs: validate
+    if: >-
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
+      vars.GCP_PROJECT_ID != '' &&
+      vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' &&
+      vars.GCP_SERVICE_ACCOUNT != ''
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./infra
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Autenticar en GCP vía Workload Identity Federation (OIDC)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: Configurar HashiCorp Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.17.0"
+
+      - name: Inicializar con backend configurado (terraform init)
+        run: terraform init
+
+      - name: Ejecutar Terraform Plan
+        env:
+          TF_VAR_project_id: ${{ vars.GCP_PROJECT_ID }}
+          TF_VAR_enable_github_oidc: "true"
+        run: terraform plan -no-color
+
+  apply:
+    name: Terraform Apply (Producción en master)
+    needs: [validate, plan]
+    if: >-
+      github.ref == 'refs/heads/master' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      vars.GCP_PROJECT_ID != '' &&
+      vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' &&
+      vars.GCP_SERVICE_ACCOUNT != ''
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./infra
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Autenticar en GCP vía Workload Identity Federation (OIDC)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: Configurar HashiCorp Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.17.0"
+
+      - name: Inicializar con backend configurado (terraform init)
+        run: terraform init
+
+      - name: Aplicar cambios en GCP (terraform apply)
+        env:
+          TF_VAR_project_id: ${{ vars.GCP_PROJECT_ID }}
+          TF_VAR_enable_github_oidc: "true"
+        run: terraform apply -auto-approve -no-color

@@ -11,6 +11,9 @@ node_modules
 dist
 dist-ssr
 coverage
+# Environment and Secrets
+.env
+.env*.local
 *.local
 
 
@@ -27,13 +30,23 @@ coverage
 *.sw?
 *.tsbuildinfo
 
-# Terraform (estado y variables locales nunca se commitean)
+# Terraform & GCP Credentials (estado, variables y claves nunca se commitean)
+**/.terraform/*
 .terraform/
 *.tfstate
 *.tfstate.*
 *.tfvars
+*.tfvars.json
 !*.tfvars.example
 crash.log
+crash.*.log
+.terraformrc
+terraform.rc
+.terraform.tfstate.lock.info
+*-gcp-key.json
+*service-account*.json
+gcp-credentials*.json
+application_default_credentials.json
 override.tf
 override.tf.json
 *_override.tf

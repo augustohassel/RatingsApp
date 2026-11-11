@@ -122,3 +122,40 @@ Elegí una de estas dos opciones:
 2. El botón principal dice **Conectar con Google Drive** (sin pedir ningún Client ID).
 3. Al pulsarlo, se abre el selector estándar de Google donde cada usuario elige **su cuenta**, acepta el permiso sobre archivos de RatingsApp y aparece `RatingsApp/ratingsapp-backup.json` en su Google Drive.
 
+---
+
+## 6. Estado Remoto en GCS y CI/CD con OIDC (Estilo `MiBarcito`)
+
+Para que GitHub Actions ejecute automáticamente `terraform plan` en cada PR y `terraform apply` al mergear en `master` sin guardar claves JSON:
+
+1. Activá `enable_github_oidc = true` en `infra/terraform.tfvars` y corré `terraform apply`.
+2. Creá el bucket de estado en GCS (Free Tier 5 GB en `us-central1`):
+   ```bash
+   gcloud storage buckets create gs://ratingsapp-sync-tfstate --location=us-central1 --uniform-bucket-level-access
+   gcloud storage buckets update gs://ratingsapp-sync-tfstate --versioning
+   ```
+3. Descomentá el bloque `backend "gcs"` en `infra/versions.tf` y migrá el estado:
+   ```bash
+   cd infra && terraform init -migrate-state
+   ```
+4. Cargá en GitHub (**Settings $\rightarrow$ Secrets and variables $\rightarrow$ Actions $\rightarrow$ Variables**):
+   - `GCP_PROJECT_ID`: tu `project_id` (ej. `ratingsapp-sync`)
+   - `GCP_WORKLOAD_IDENTITY_PROVIDER`: valor del output `workload_identity_provider` de Terraform
+   - `GCP_SERVICE_ACCOUNT`: valor del output `github_actions_service_account` de Terraform
+   Con esas 3 variables definidas, [`.github/workflows/terraform-validate.yml`](../.github/workflows/terraform-validate.yml) habilita automáticamente los jobs `plan` y `apply`.
+
+---
+
+## 7. Mapa Rápido de Verificación en Google Cloud Console
+
+Reemplazá `<PROJECT_ID>` por el ID de tu proyecto (ej. `ratingsapp-sync`):
+
+| Qué querés revisar | Enlace directo |
+| :--- | :--- |
+| **APIs habilitadas (`drive.googleapis.com`)** | `https://console.cloud.google.com/apis/dashboard?project=<PROJECT_ID>` |
+| **Pantalla de consentimiento y OAuth Client ID** | `https://console.cloud.google.com/auth/overview?project=<PROJECT_ID>` |
+| **Bucket `tfstate` en Cloud Storage** | `https://console.cloud.google.com/storage/browser?project=<PROJECT_ID>` |
+| **Pool OIDC y Service Account de CI/CD** | `https://console.cloud.google.com/iam-admin/workload-identity-pools?project=<PROJECT_ID>` |
+| **Facturación y alertas ($0.00 USD/mes)** | `https://console.cloud.google.com/billing?project=<PROJECT_ID>` |
+
+
