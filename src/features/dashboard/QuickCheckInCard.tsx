@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import confetti from 'canvas-confetti';
-import { db } from '../../db';
+import { db, saveEvaluation } from '../../db';
 import { DAILY_MOOD_TOPIC_ID, EvaluationEntry } from '../../types';
 import { toLocalDateString, createIsoFromLocalDate } from '../../utils/calculator';
 import { ScoreBadge } from '../../components/common/ScoreBadge';
@@ -67,9 +67,10 @@ export const QuickCheckInCard: React.FC<QuickCheckInCardProps> = ({
     setIsSaving(true);
 
     try {
+      const now = Date.now();
       const isoDate = createIsoFromLocalDate(selectedDate, new Date());
       const newEntry: EvaluationEntry = {
-        id: `mood-${Date.now()}`,
+        id: `mood-${now}`,
         topicId: DAILY_MOOD_TOPIC_ID,
         date: isoDate,
         items: [
@@ -85,10 +86,11 @@ export const QuickCheckInCard: React.FC<QuickCheckInCardProps> = ({
         totalWeight: 10,
         finalScore: selectedScore,
         notes: note.trim() || undefined,
-        createdAt: Date.now(),
+        createdAt: now,
+        updatedAt: now,
       };
 
-      await db.evaluations.add(newEntry);
+      await saveEvaluation(newEntry);
 
       if (selectedScore >= 7) {
         confetti({

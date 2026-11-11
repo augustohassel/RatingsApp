@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import confetti from 'canvas-confetti';
-import { db } from '../../db';
+import { db, saveEvaluation } from '../../db';
 import {
   ChatMessage,
   DAILY_MOOD_TOPIC_ID,
@@ -142,8 +142,9 @@ Soy tu asistente local de RatingsApp. Puedes usarme de dos formas:
       const isoDate = createIsoFromLocalDate(todayStr, new Date());
       const score = quickResult.score;
 
+      const now = Date.now();
       const newMoodEntry: EvaluationEntry = {
-        id: `mood-${Date.now()}`,
+        id: `mood-${now}`,
         topicId: DAILY_MOOD_TOPIC_ID,
         date: isoDate,
         items: [
@@ -159,10 +160,11 @@ Soy tu asistente local de RatingsApp. Puedes usarme de dos formas:
         totalWeight: 10,
         finalScore: score,
         notes: quickResult.notes,
-        createdAt: Date.now(),
+        createdAt: now,
+        updatedAt: now,
       };
 
-      await db.evaluations.add(newMoodEntry);
+      await saveEvaluation(newMoodEntry);
 
       if (score >= 7) {
         confetti({
@@ -243,7 +245,11 @@ Por favor verifica tu conexión y la configuración de tu clave en Ajustes.`,
   };
 
   const handleConfirmDraft = async (messageId: string, evaluation: EvaluationEntry) => {
-    await db.evaluations.add(evaluation);
+    const now = Date.now();
+    await saveEvaluation({
+      ...evaluation,
+      updatedAt: evaluation.updatedAt ?? now,
+    });
 
     // Actualizar el mensaje para marcar el draft como confirmado
     const msg = await db.chatMessages.get(messageId);

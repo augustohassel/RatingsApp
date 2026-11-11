@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, exportBackup, importBackup, resetDatabase, clearAllDatabase } from '../../db';
 import {
@@ -18,9 +18,20 @@ import {
   EyeOff,
   Sparkles,
   Server,
+  Cloud,
+  CloudOff,
+  RefreshCw,
+  LogOut,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { getAiSettings, saveAiSettings, testAiConnection } from '../../services/aiService';
 import { AiSettings } from '../../types';
+import { syncManager, SyncStatusSnapshot } from '../../services/cloudSync/syncService';
+import {
+  getConfiguredGoogleClientId,
+  setGoogleClientIdOverride,
+} from '../../services/cloudSync/googleDriveProvider';
 
 export const SettingsView: React.FC = () => {
   const topicsCount = useLiveQuery(() => db.topics.count(), []) || 0;
@@ -36,6 +47,88 @@ export const SettingsView: React.FC = () => {
   const [testAiResult, setTestAiResult] = useState<{ success: boolean; message: string } | null>(
     null
   );
+
+  const [syncState, setSyncState] = useState<SyncStatusSnapshot>(() => syncManager.getSnapshot());
+  const [isSyncBusy, setIsSyncBusy] = useState(false);
+  const [showAdvancedSync, setShowAdvancedSync] = useState(false);
+  const [customClientId, setCustomClientId] = useState(() => getConfiguredGoogleClientId());
+
+  useEffect(() => {
+    setSyncState(syncManager.getSnapshot());
+    return syncManager.subscribe(() => {
+      setSyncState(syncManager.getSnapshot());
+    });
+  }, []);
+
+  const runSyncAction = async (action: () => Promise<{ success: boolean; message: string }>) => {
+    setIsSyncBusy(true);
+    try {
+      const res = await action();
+      setMessage({ type: res.success ? 'success' : 'error', text: res.message });
+    } finally {
+      setIsSyncBusy(false);
+    }
+  };
+
+  const handleConnectDrive = () => runSyncAction(() => syncManager.connectAndSync('select_account'));
+
+  const handleSyncNow = () => runSyncAction(() => syncManager.syncNow({ interactive: true }));
+
+  const handleDisconnectDrive = async () => {
+    if (
+      confirm(
+        '¿Desconectar tu cuenta de Google Drive de este dispositivo? Tus datos locales en IndexedDB y tu archivo en Drive permanecerán intactos.'
+      )
+    ) {
+      await syncManager.disconnect();
+      setMessage({ type: 'success', text: 'Cuenta de Google Drive desconectada de este dispositivo.' });
+    }
+  };
+
+  const handleOverwriteRemote = async () => {
+    if (
+      confirm(
+        '¿Subir y sobrescribir el respaldo en Google Drive con tus datos locales actuales? Esta acción reemplazará el contenido remoto.'
+      )
+    ) {
+      await runSyncAction(() => syncManager.overwriteRemoteWithLocal());
+    }
+  };
+
+  const handleRestoreFromRemote = async () => {
+    if (
+      confirm(
+        '¿Restaurar desde Google Drive? Se reemplazarán tus ámbitos y evaluaciones locales actuales por los del respaldo en Drive.'
+      )
+    ) {
+      await runSyncAction(() => syncManager.restoreFromRemote());
+    }
+  };
+
+  const handleSaveClientIdOverride = () => {
+    setGoogleClientIdOverride(customClientId);
+    syncManager.notify();
+    setMessage({
+      type: 'success',
+      text: customClientId.trim()
+        ? 'Client ID de Google guardado localmente.'
+        : 'Se restauró el Client ID por defecto.',
+    });
+  };
+
+  const formatSyncDate = (iso?: string) => {
+    if (!iso) return 'Nunca';
+    try {
+      return new Date(iso).toLocaleString('es-ES', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return iso;
+    }
+  };
 
   const handleSaveAiSettings = () => {
     saveAiSettings(aiSettings);
@@ -159,7 +252,7 @@ export const SettingsView: React.FC = () => {
           <span>Configuración & Datos</span>
         </h2>
         <p className="text-xs text-slate-400 mt-0.5">
-          Tus datos se almacenan exclusivamente en este navegador.
+          Tus datos viven localmente en este navegador y podés sincronizarlos opcionalmente con tu propio Google Drive.
         </p>
       </div>
 
@@ -209,6 +302,242 @@ export const SettingsView: React.FC = () => {
               Evaluaciones
             </span>
             <span className="text-lg font-bold text-indigo-400">{evalsCount}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Cloud Sync (Google Drive Zero-Backend) */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Cloud className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Sincronización Personal (Google Drive)</span>
+          </h3>
+          <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-medium">
+            Zero-Backend
+          </span>
+        </div>
+
+        <div className="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            Respaldá y combiná tus ámbitos y evaluaciones entre dispositivos usando tu propia carpeta{' '}
+            <span className="font-mono text-slate-300">RatingsApp/</span> en Google Drive (permiso acotado{' '}
+            <span className="font-mono text-slate-300">drive.file</span>). Tus claves BYOK y mensajes de chat nunca se suben.
+          </p>
+
+          {/* Estado de conexión y pendientes */}
+          <div className="bg-slate-900/70 rounded-xl p-3 border border-slate-800 space-y-2 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400">Estado</span>
+              {syncState.status === 'offline' ? (
+                <span className="text-slate-300 font-semibold flex items-center gap-1">
+                  <CloudOff className="w-3.5 h-3.5 text-slate-400" /> Modo Offline
+                </span>
+              ) : syncState.isConnected ? (
+                <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  {syncState.accountEmail || 'Conectada'}
+                </span>
+              ) : (
+                <span className="text-slate-400 font-medium">Desconectada</span>
+              )}
+            </div>
+
+            {syncState.isConnected && (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Última sincronización</span>
+                  <span className="text-slate-200 font-medium">
+                    {formatSyncDate(syncState.lastSyncAt)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Cambios locales</span>
+                  <span
+                    className={`font-medium ${
+                      syncState.hasPendingChanges ? 'text-amber-400' : 'text-emerald-400'
+                    }`}
+                  >
+                    {syncState.hasPendingChanges ? 'Pendientes de sincronizar' : 'Al día'}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Alerta accionable si hay error de sync */}
+          {syncState.lastError && (
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <span>{syncState.lastError.message}</span>
+              </div>
+              {(syncState.lastError.code === 'TOKEN_EXPIRED' ||
+                syncState.lastError.code === 'FORBIDDEN' ||
+                syncState.lastError.code === 'AUTH_DENIED' ||
+                syncState.lastError.code === 'AUTH_REQUIRED') && (
+                <button
+                  type="button"
+                  onClick={handleConnectDrive}
+                  disabled={isSyncBusy}
+                  className="w-full py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 font-semibold transition-colors"
+                >
+                  Reautenticar con Google
+                </button>
+              )}
+              {(syncState.lastError.code === 'NOT_FOUND' ||
+                syncState.lastError.code === 'INVALID_BACKUP') && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleOverwriteRemote}
+                    disabled={isSyncBusy}
+                    className="flex-1 py-1.5 px-2.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/40 border border-indigo-500/40 text-indigo-200 font-semibold transition-colors"
+                  >
+                    Recrear respaldo en Drive
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDisconnectDrive}
+                    className="py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition-colors"
+                  >
+                    Desconectar
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Acciones principales */}
+          {!syncState.isConnected ? (
+            <button
+              type="button"
+              onClick={handleConnectDrive}
+              disabled={isSyncBusy || !syncState.isConfigured}
+              className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-md shadow-indigo-600/30 transition-colors"
+            >
+              <Cloud className="w-4 h-4" />
+              <span>
+                {isSyncBusy
+                  ? 'Conectando...'
+                  : syncState.isConfigured
+                  ? 'Conectar con Google Drive'
+                  : 'Configurá un Client ID para conectar'}
+              </span>
+            </button>
+          ) : (
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSyncNow}
+                  disabled={isSyncBusy || syncState.status === 'syncing'}
+                  className="flex-1 py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-md shadow-indigo-600/30 transition-colors"
+                >
+                  <RefreshCw
+                    className={`w-3.5 h-3.5 ${
+                      isSyncBusy || syncState.status === 'syncing' ? 'animate-spin' : ''
+                    }`}
+                  />
+                  <span>
+                    {isSyncBusy || syncState.status === 'syncing'
+                      ? 'Sincronizando...'
+                      : 'Sincronizar ahora'}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDisconnectDrive}
+                  disabled={isSyncBusy}
+                  title="Desconectar Google Drive"
+                  className="py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Desconectar</span>
+                </button>
+              </div>
+
+              {/* Toggle auto-sync oportunista */}
+              <label className="flex items-center justify-between gap-3 bg-slate-900/50 rounded-xl px-3 py-2 border border-slate-800/80 cursor-pointer">
+                <div>
+                  <span className="text-xs font-semibold text-slate-200 block">
+                    Auto-sincronización en primer plano
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    Sincroniza al abrir la app o guardar cambios cuando hay red y sesión vigente.
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={syncState.autoSyncEnabled}
+                  onChange={(e) => syncManager.setAutoSyncEnabled(e.target.checked)}
+                  className="w-4 h-4 accent-indigo-500 rounded cursor-pointer shrink-0"
+                />
+              </label>
+            </div>
+          )}
+
+          {/* Opciones avanzadas y recuperación explícita */}
+          <div className="pt-1 border-t border-slate-800/80">
+            <button
+              type="button"
+              onClick={() => setShowAdvancedSync((prev) => !prev)}
+              className="w-full flex items-center justify-between text-[11px] font-semibold text-slate-400 hover:text-slate-200 py-1 transition-colors"
+            >
+              <span>Recuperación y opciones avanzadas</span>
+              {showAdvancedSync ? (
+                <ChevronUp className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5" />
+              )}
+            </button>
+
+            {showAdvancedSync && (
+              <div className="space-y-3 pt-2.5">
+                {syncState.isConnected && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={handleOverwriteRemote}
+                      disabled={isSyncBusy}
+                      className="py-2 px-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-slate-200 text-[11px] font-semibold transition-colors disabled:opacity-50"
+                    >
+                      Subir y sobrescribir nube
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRestoreFromRemote}
+                      disabled={isSyncBusy}
+                      className="py-2 px-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-amber-300 text-[11px] font-semibold transition-colors disabled:opacity-50"
+                    >
+                      Restaurar desde nube
+                    </button>
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-semibold text-slate-300 block">
+                    Google OAuth Client ID (Opcional / Avanzado)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={customClientId}
+                      onChange={(e) => setCustomClientId(e.target.value)}
+                      placeholder="123456-abc.apps.googleusercontent.com"
+                      className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 text-[11px] text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSaveClientIdOverride}
+                      className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-semibold transition-colors"
+                    >
+                      Aplicar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -464,7 +793,7 @@ export const SettingsView: React.FC = () => {
         </div>
         <h4 className="text-xs font-bold text-white">Privacidad 100% Garantizada</h4>
         <p className="text-[11px] text-slate-400 leading-relaxed">
-          Esta aplicación opera de forma totalmente local en tu dispositivo mediante IndexedDB. Ningún dato se envía ni se almacena en ningún servidor.
+          Esta aplicación opera de forma local-first mediante IndexedDB sin backend del desarrollador. Si activás la sincronización opcional, tus ámbitos y evaluaciones viajan directo a tu propio Google Drive (nunca tus claves de IA ni chats).
         </p>
       </div>
 

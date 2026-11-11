@@ -10,9 +10,9 @@ Este documento proporciona el contexto arquitectónico, técnico y de diseño pa
 
 ### Principios No Negociables
 1. **Privacidad Absoluta (Zero-Backend)**: 
-   - El 100% de los datos generados por el usuario reside exclusivamente en el almacenamiento local del navegador del dispositivo (IndexedDB mediante Dexie.js).
-   - **Bajo ninguna circunstancia** se deben enviar datos de evaluaciones a servidores externos ni APIs de telemetría de terceros.
-   - Nunca incluir credenciales, secretos, API keys o tokens en el código fuente, commits o issues.
+   - El 100% de los datos generados por el usuario reside en el almacenamiento local del dispositivo (IndexedDB mediante Dexie.js) y, únicamente si el usuario lo activa de forma explícita, se respaldan/sincronizan directo entre su navegador y su Google Drive personal (`drive.file` via `CloudSyncProvider`, sin backend del desarrollador).
+   - **Bajo ninguna circunstancia** se deben enviar datos de evaluaciones a servidores propios del desarrollador ni APIs de telemetría de terceros, ni sincronizar claves BYOK (`AiSettings`) o sesiones de chat (`chatMessages`).
+   - Nunca incluir credenciales, secretos, API keys o tokens privados en el código fuente, commits o issues (`VITE_GOOGLE_CLIENT_ID` es un OAuth Client ID web público para GIS en el navegador).
 2. **Offline-First & PWA**:
    - La aplicación debe ser instalable en la pantalla de inicio en iOS y Android.
    - Todo el bundle de assets, estilos y base de datos debe ser operativo sin conexión a internet.
@@ -94,7 +94,11 @@ RatingsApp/
 │   │   └── index.ts         # Interfaces: Topic, TopicItemDefinition, EvaluationEntry, BackupData
 │   ├── utils/
 │   │   ├── calculator.ts    # Motor de cálculo de promedio ponderado y escalas de color
-│   │   └── calculator.test.ts # Tests unitarios de cálculo contra la planilla real
+│   │   ├── calculator.test.ts # Tests unitarios de cálculo contra la planilla real
+│   │   ├── syncEngine.ts    # Motor determinístico de merge multi-dispositivo (LWW + tombstones)
+│   │   └── syncEngine.test.ts # Tests unitarios de merge e idempotencia
+│   ├── services/
+│   │   └── cloudSync/       # Abstracción CloudSyncProvider, GoogleDriveProvider (GIS + Drive v3) y syncService (CloudSyncManager)
 │   ├── db/
 │   │   ├── seeds.ts         # Plantillas por defecto (Trabajo con 14 criterios, Natación)
 │   │   └── index.ts         # Instancia Dexie, inicialización, exportación/importación JSON/CSV
@@ -159,7 +163,7 @@ docker run --rm -v "${PWD}:/workspace" -w /workspace ratingsapp-dev npm run buil
 
 - **Nuevos Ámbitos o Semillas**: Modificar [`src/db/seeds.ts`](file:///workspaces/RatingsApp/src/db/seeds.ts).
 - **Ajustes en la Fórmula**: Mantener sincronizado [`src/utils/calculator.ts`](file:///workspaces/RatingsApp/src/utils/calculator.ts) y ejecutar siempre `npm test` para validar no romper la compatibilidad con los datos históricos existentes.
-- **Base de Datos**: Si se modifica el esquema en [`src/db/index.ts`](file:///workspaces/RatingsApp/src/db/index.ts), incrementar el número de versión de Dexie (`this.version(2)...`) para aplicar migraciones limpias.
+- **Base de Datos**: Si se modifica el esquema en [`src/db/index.ts`](file:///workspaces/RatingsApp/src/db/index.ts), incrementar el número de versión de Dexie (`this.version(4)...`) para aplicar migraciones limpias.
 - **Versión & Release**:
   - El número de versión se gestiona centralizadamente en `package.json` y se inyecta en el cliente mediante Vite (`__APP_VERSION__`).
   - La versión está visible en la esquina superior del `Header` y en el pie de `Ajustes`.

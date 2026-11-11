@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../db';
+import { db, deleteTopicWithTombstone, notifyLocalDataChanged } from '../../db';
 import { Topic } from '../../types';
 import { TopicFormModal } from './TopicFormModal';
 import { TopicIcon } from '../../components/common/TopicIcon';
@@ -38,10 +38,7 @@ export const TopicManagerView: React.FC<TopicManagerViewProps> = ({
         : `¿Eliminar el ámbito "${topicName}"?`;
 
     if (confirm(msg)) {
-      await db.transaction('rw', db.topics, db.evaluations, async () => {
-        await db.topics.delete(topicId);
-        await db.evaluations.where('topicId').equals(topicId).delete();
-      });
+      await deleteTopicWithTombstone(topicId);
     }
   };
 
@@ -177,7 +174,10 @@ export const TopicManagerView: React.FC<TopicManagerViewProps> = ({
         <TopicFormModal
           topic={editingTopic}
           onClose={() => setIsModalOpen(false)}
-          onSaved={() => setIsModalOpen(false)}
+          onSaved={() => {
+            notifyLocalDataChanged();
+            setIsModalOpen(false);
+          }}
         />
       )}
     </div>

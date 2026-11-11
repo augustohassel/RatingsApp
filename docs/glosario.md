@@ -68,4 +68,20 @@ Este documento centraliza los conceptos, términos y definiciones del dominio de
 - **Alcance / Propósito**: Incentivar al usuario a iniciar un hilo limpio una vez guardada una evaluación mediante acciones explícitas de "Nueva sesión", optimizando costos y garantizando que el asistente responda enfocado en el momento presente.
 - **Lo que NO es**: No elimina ni modifica las evaluaciones ya asentadas en el historial ni en las matrices anuales.
 
+### Sincronización en Nube Personal
+- **Definición**: Mecanismo opcional de respaldo y combinación multi-dispositivo ejecutado íntegramente desde el navegador hacia el almacenamiento personal del usuario (por ejemplo, su cuenta de Google Drive), sin servidores intermedios del desarrollador (*Zero-Backend*).
+- **Alcance / Propósito**: Permitir resguardar ámbitos y evaluaciones y continuar usándolos entre celular y computadora de forma determinística e idempotente, manteniendo la operación *offline-first* intacta.
+- **Lo que NO es**: No envía datos a backends propios ni sincroniza credenciales de IA (`BYOK`) ni mensajes efímeros de chat.
+
+### Proveedor de Sincronización (CloudSyncProvider)
+- **Definición**: Contrato abstracto que encapsula la autenticación del usuario y la lectura/escritura de respaldos en una nube personal específica (implementado inicialmente mediante Google Drive con el scope mínimo `drive.file`).
+- **Alcance / Propósito**: Desacoplar el motor de combinación local y la interfaz de usuario de las APIs concretas de cada nube, permitiendo incorporar otros proveedores en el futuro.
+- **Lo que NO es**: No tiene acceso al almacenamiento completo de archivos del usuario ni ejecuta lógica de resolución de conflictos.
+
+### Marca de Borrado (Tombstone)
+- **Definición**: Registro liviano que conserva el identificador de un ámbito o evaluación eliminada junto con su marca temporal de borrado (`deletedAt`).
+- **Alcance / Propósito**: Propagar eliminaciones de forma segura al combinar datos entre dispositivos, evitando que un registro borrado en un dispositivo reaparezca al sincronizar con otro que aún lo conservaba.
+- **Lo que NO es**: No conserva el contenido sensible ni los puntajes del registro eliminado.
+
+
 
