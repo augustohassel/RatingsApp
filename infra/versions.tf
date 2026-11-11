@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.10.0"
+  required_version = ">= 1.17.0"
 
   # Opcional: una vez creado el bucket de estado en GCS, podés descomentar este bloque
   # y ejecutar `terraform init -migrate-state`:
