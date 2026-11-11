@@ -1,0 +1,5 @@
+project_id         = "ratingsapp-sync"
+region             = "us-central1"
+enable_github_oidc = false
+github_repository  = "augustohassel/RatingsApp"
+

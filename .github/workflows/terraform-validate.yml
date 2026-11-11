@@ -1,0 +1,45 @@
+name: Terraform Validate
+
+on:
+  push:
+    branches:
+      - dev
+      - master
+      - 'issue/**'
+    paths:
+      - 'infra/**'
+      - '.github/workflows/terraform-validate.yml'
+  pull_request:
+    branches:
+      - dev
+      - master
+    paths:
+      - 'infra/**'
+      - '.github/workflows/terraform-validate.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Terraform fmt & validate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./infra
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar HashiCorp Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.10.0"
+
+      - name: Verificar formato (terraform fmt -check)
+        run: terraform fmt -check -recursive
+
+      - name: Inicializar sin backend remoto (terraform init -backend=false)
+        run: terraform init -backend=false
+
+      - name: Validar sintaxis y tipos (terraform validate)
+        run: terraform validate
+

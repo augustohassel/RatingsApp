@@ -26,3 +26,15 @@ coverage
 *.sln
 *.sw?
 *.tsbuildinfo
+
+# Terraform (estado y variables locales nunca se commitean)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json

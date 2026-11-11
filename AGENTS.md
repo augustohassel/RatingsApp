@@ -85,8 +85,10 @@ RatingsApp/
 │   ├── Dockerfile           # Entorno Node 20 LTS en Debian Bookworm
 │   └── devcontainer.json    # Configuración de Dev Container y extensiones
 ├── docs/
+│   ├── CONFIGURACION_GOOGLE_DRIVE_APB.md # Guía APB de GCP, Terraform y VITE_GOOGLE_CLIENT_ID
 │   ├── GUIA_DE_USO.md       # Manual funcional para el usuario
 │   └── INSTALACION_MOBILE.md# Cómo instalar y compartir la app en celulares
+├── infra/                   # Terraform mínimo en GCP (Google Drive API y OIDC opcional)
 ├── public/
 │   ├── favicon.svg          # Favicon vectorial e ícono PWA
 ├── src/
