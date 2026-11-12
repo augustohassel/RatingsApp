@@ -173,11 +173,17 @@ export class CloudSyncManager {
     return promise;
   }
 
-  private async ensureInteractiveToken(): Promise<void> {
+  private async ensureValidToken(interactive: boolean): Promise<void> {
     const auth = this.provider.getAuthState();
-    if (!auth.hasActiveToken) {
-      await this.provider.connect();
+    if (auth.hasActiveToken) return;
+    if (!interactive) {
+      throw new CloudSyncError(
+        'TOKEN_EXPIRED',
+        'Tu sesión de Google Drive expiró. Reautenticá tu cuenta en Ajustes para sincronizar.',
+        401
+      );
     }
+    await this.provider.connect();
   }
 
   private markSyncSuccess(): void {
@@ -194,30 +200,14 @@ export class CloudSyncManager {
     }
 
     const auth = this.provider.getAuthState();
-    if (!auth.isConnected && !options.interactive && this.isOnline()) {
+    if (!auth.isConnected && !options.interactive) {
       return { success: false, message: 'No hay cuenta conectada.', errorCode: 'AUTH_REQUIRED' };
     }
 
     return this.runExclusiveTask(
       'Modo offline: no hay conexión a internet. Tus cambios quedan guardados localmente.',
       async () => {
-        const currentAuth = this.provider.getAuthState();
-        if (!currentAuth.isConnected && !options.interactive) {
-          this.status = 'idle';
-          this.notify();
-          return { success: false, message: 'No hay cuenta conectada.', errorCode: 'AUTH_REQUIRED' };
-        }
-
-        if (!currentAuth.hasActiveToken) {
-          if (!options.interactive) {
-            throw new CloudSyncError(
-              'TOKEN_EXPIRED',
-              'Tu sesión de Google Drive expiró. Reautenticá tu cuenta en Ajustes para sincronizar.',
-              401
-            );
-          }
-          await this.provider.connect();
-        }
+        await this.ensureValidToken(Boolean(options.interactive));
 
         const metaBefore = loadDriveMetadata();
         const isFirstLink = !metaBefore.lastSyncAt;
@@ -253,7 +243,7 @@ export class CloudSyncManager {
     return this.runExclusiveTask(
       'Sin conexión a internet para subir el respaldo a Google Drive.',
       async () => {
-        await this.ensureInteractiveToken();
+        await this.ensureValidToken(true);
         const localBackup = await exportBackupData();
         const meta = loadDriveMetadata();
         await this.provider.writeBackup(localBackup, meta.fileId, { recreateIfMissing: true });
@@ -270,7 +260,7 @@ export class CloudSyncManager {
     return this.runExclusiveTask(
       'Sin conexión a internet para restaurar desde Google Drive.',
       async () => {
-        await this.ensureInteractiveToken();
+        await this.ensureValidToken(true);
         const remote = await this.provider.readBackup();
         if (!remote) {
           const msg = 'No se encontró ningún archivo de respaldo en Google Drive.';

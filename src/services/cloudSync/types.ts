@@ -49,14 +49,24 @@ export interface WriteBackupOptions {
   recreateIfMissing?: boolean;
 }
 
+/**
+ * Contrato extensible para proveedores de sincronización personal Zero-Backend.
+ * Cada implementación opera directo entre el navegador del usuario y su almacenamiento.
+ */
 export interface CloudSyncProvider {
   readonly id: CloudProviderId;
   readonly displayName: string;
+  /** Indica si el proveedor cuenta con configuración mínima (ej. Client ID) para autenticar. */
   isConfigured(): boolean;
+  /** Devuelve el estado actual de conexión y vigencia del token en memoria. */
   getAuthState(): CloudAuthState;
+  /** Inicia o renueva la sesión OAuth interactiva en el navegador. */
   connect(options?: ConnectOptions): Promise<CloudAuthState>;
+  /** Revoca el token activo y limpia los metadatos locales de sesión. */
   disconnect(): Promise<void>;
+  /** Lee y valida el archivo de respaldo remoto, o devuelve null si no existe. */
   readBackup(): Promise<RemoteBackupRecord | null>;
+  /** Crea o actualiza el archivo de respaldo remoto con el snapshot combinado. */
   writeBackup(
     data: BackupData,
     existingFileId?: string,

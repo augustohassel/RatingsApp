@@ -41,6 +41,7 @@ resource "google_project_iam_member" "github_actions_roles" {
     "roles/serviceusage.serviceUsageAdmin",
     "roles/iam.workloadIdentityPoolAdmin",
     "roles/iam.serviceAccountAdmin",
+    "roles/resourcemanager.projectIamAdmin",
     "roles/storage.admin",
   ]) : toset([])
 

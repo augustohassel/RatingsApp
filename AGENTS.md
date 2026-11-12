@@ -91,6 +91,7 @@ RatingsApp/
 ├── infra/                   # Terraform mínimo en GCP (Google Drive API y OIDC opcional)
 ├── public/
 │   ├── favicon.svg          # Favicon vectorial e ícono PWA
+│   └── privacy.html         # Política de privacidad estática (Zero-Backend) para OAuth Consent Screen
 ├── src/
 │   ├── types/
 │   │   └── index.ts         # Interfaces: Topic, TopicItemDefinition, EvaluationEntry, BackupData

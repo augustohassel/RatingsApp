@@ -388,6 +388,7 @@ export class GoogleDriveProvider implements CloudSyncProvider {
       accountEmail: undefined,
       folderId: undefined,
       fileId: undefined,
+      lastSyncAt: undefined,
     });
   }
 

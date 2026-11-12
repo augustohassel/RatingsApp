@@ -27,11 +27,15 @@ gcloud config set project ratingsapp-sync
 gcloud auth application-default login
 gcloud auth application-default set-quota-project ratingsapp-sync
 
-# 2. Configurar variables locales (nunca se commitean)
+# 2. Crear bucket para estado remoto en GCS (infra/versions.tf usa backend "gcs")
+gcloud storage buckets create gs://ratingsapp-sync-tfstate --location=us-central1 --uniform-bucket-level-access
+gcloud storage buckets update gs://ratingsapp-sync-tfstate --versioning
+
+# 3. Configurar variables locales (nunca se commitean)
 cd infra
 cp terraform.tfvars.example terraform.tfvars
 
-# 3. Inicializar, validar y aplicar
+# 4. Inicializar, validar y aplicar (para validar sin GCS usar: terraform init -backend=false)
 terraform init
 terraform fmt -check
 terraform validate

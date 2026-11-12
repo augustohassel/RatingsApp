@@ -53,8 +53,10 @@ flowchart LR
    cp terraform.tfvars.example terraform.tfvars
    ```
    *(Editá `infra/terraform.tfvars` si elegiste otro `project_id`. Este archivo está en `.gitignore` y nunca se sube a Git).*
-4. Ejecutá Terraform para activar `drive.googleapis.com`:
+4. Creá el bucket para el estado remoto de Terraform en GCS (Free Tier 5 GB en `us-central1`) y ejecutá Terraform para activar `drive.googleapis.com` *(nota: `infra/versions.tf` ya viene configurado con `backend "gcs"`; si querés solo validar sintaxis sin bucket usá `terraform init -backend=false`)*:
    ```bash
+   gcloud storage buckets create gs://ratingsapp-sync-tfstate --location=us-central1 --uniform-bucket-level-access
+   gcloud storage buckets update gs://ratingsapp-sync-tfstate --versioning
    terraform init
    terraform fmt -check
    terraform validate
@@ -129,19 +131,10 @@ Elegí una de estas dos opciones:
 
 ## 6. Estado Remoto en GCS y CI/CD con OIDC (Estilo `MiBarcito`)
 
-Para que GitHub Actions ejecute automáticamente `terraform plan` en cada PR y `terraform apply` al mergear en `master` sin guardar claves JSON:
+Para que GitHub Actions ejecute automáticamente `terraform plan` en cada PR y `terraform apply` al mergear en `master` sin guardar claves JSON (el estado remoto ya apunta a `gs://ratingsapp-sync-tfstate` en [`infra/versions.tf`](../infra/versions.tf)):
 
-1. Activá `enable_github_oidc = true` en `infra/terraform.tfvars` y corré `terraform apply`.
-2. Creá el bucket de estado en GCS (Free Tier 5 GB en `us-central1`):
-   ```bash
-   gcloud storage buckets create gs://ratingsapp-sync-tfstate --location=us-central1 --uniform-bucket-level-access
-   gcloud storage buckets update gs://ratingsapp-sync-tfstate --versioning
-   ```
-3. Descomentá el bloque `backend "gcs"` en `infra/versions.tf` y migrá el estado:
-   ```bash
-   cd infra && terraform init -migrate-state
-   ```
-4. Cargá en GitHub (**Settings $\rightarrow$ Secrets and variables $\rightarrow$ Actions $\rightarrow$ Variables**):
+1. Activá `enable_github_oidc = true` en `infra/terraform.tfvars` y corré `terraform apply` dentro de `infra/`.
+2. Cargá en GitHub (**Settings $\rightarrow$ Secrets and variables $\rightarrow$ Actions $\rightarrow$ Variables**):
    - `GCP_PROJECT_ID`: tu `project_id` (ej. `ratingsapp-sync`)
    - `GCP_WORKLOAD_IDENTITY_PROVIDER`: valor del output `workload_identity_provider` de Terraform
    - `GCP_SERVICE_ACCOUNT`: valor del output `github_actions_service_account` de Terraform
