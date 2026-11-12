@@ -14,6 +14,15 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
+      workbox: {
+        navigateFallbackDenylist: [/^\/privacy\.html$/],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/(accounts\.google\.com|([a-z0-9-]+\.)?googleapis\.com)\/.*/i,
+            handler: 'NetworkOnly',
+          },
+        ],
+      },
       manifest: {
         id: '/',
         name: 'RatingsApp - Auto-Evaluaciones Ponderadas',

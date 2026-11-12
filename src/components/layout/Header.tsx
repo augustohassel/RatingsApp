@@ -1,5 +1,6 @@
-import React from 'react';
-import { Sparkles, ShieldCheck, MessageSquare } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Sparkles, ShieldCheck, MessageSquare, Cloud, CloudOff, RefreshCw, AlertTriangle } from 'lucide-react';
+import { syncManager, SyncStatusSnapshot } from '../../services/cloudSync/syncService';
 
 interface HeaderProps {
   title?: string;
@@ -8,6 +9,65 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ title = 'RatingsApp', subtitle, onOpenChat }) => {
+  const [syncState, setSyncState] = useState<SyncStatusSnapshot>(() => syncManager.getSnapshot());
+
+  useEffect(() => {
+    setSyncState(syncManager.getSnapshot());
+    return syncManager.subscribe(() => {
+      setSyncState(syncManager.getSnapshot());
+    });
+  }, []);
+
+  const renderStatusLine = () => {
+    if (!syncState.isConnected) {
+      return (
+        <div className="flex items-center gap-1 text-[11px] text-emerald-400/90 font-medium">
+          <ShieldCheck className="w-3 h-3" />
+          <span>100% Local y Privado</span>
+        </div>
+      );
+    }
+
+    if (syncState.status === 'syncing') {
+      return (
+        <div className="flex items-center gap-1 text-[11px] text-indigo-300 font-medium">
+          <RefreshCw className="w-3 h-3 animate-spin" />
+          <span>Local · Sincronizando Drive...</span>
+        </div>
+      );
+    }
+
+    if (syncState.status === 'offline') {
+      return (
+        <div className="flex items-center gap-1 text-[11px] text-slate-400 font-medium">
+          <CloudOff className="w-3 h-3" />
+          <span>Local · Offline{syncState.hasPendingChanges ? ' (pendiente)' : ''}</span>
+        </div>
+      );
+    }
+
+    if (syncState.status === 'error') {
+      return (
+        <div
+          className="flex items-center gap-1 text-[11px] text-amber-400 font-medium"
+          title={syncState.lastError?.message}
+        >
+          <AlertTriangle className="w-3 h-3" />
+          <span>Local · Sync Drive pendiente</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-1 text-[11px] text-emerald-400/90 font-medium">
+        <Cloud className="w-3 h-3" />
+        <span>
+          Local · {syncState.hasPendingChanges ? 'Drive (cambios pendientes)' : 'Drive sincronizado'}
+        </span>
+      </div>
+    );
+  };
+
   return (
     <header className="sticky top-0 z-30 glass-panel border-b border-slate-800/80 px-4 py-3 sm:px-6">
       <div className="max-w-md mx-auto flex items-center justify-between">
@@ -22,10 +82,7 @@ export const Header: React.FC<HeaderProps> = ({ title = 'RatingsApp', subtitle, 
             {subtitle ? (
               <p className="text-xs text-slate-400">{subtitle}</p>
             ) : (
-              <div className="flex items-center gap-1 text-[11px] text-emerald-400/90 font-medium">
-                <ShieldCheck className="w-3 h-3" />
-                <span>100% Local y Privado</span>
-              </div>
+              renderStatusLine()
             )}
           </div>
         </div>

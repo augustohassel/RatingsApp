@@ -2,7 +2,7 @@ import React from 'react';
 import { EvaluationEntry, Topic } from '../../types';
 import { ScoreBadge } from '../../components/common/ScoreBadge';
 import { X, Calendar, MessageSquare, Trash2, Award, Pencil } from 'lucide-react';
-import { db } from '../../db';
+import { deleteEvaluationWithTombstone } from '../../db';
 
 interface EvaluationDetailModalProps {
   evaluation: EvaluationEntry;
@@ -21,7 +21,7 @@ export const EvaluationDetailModal: React.FC<EvaluationDetailModalProps> = ({
 }) => {
   const handleDelete = async () => {
     if (confirm('¿Estás seguro de que deseas eliminar esta evaluación del histórico?')) {
-      await db.evaluations.delete(evaluation.id);
+      await deleteEvaluationWithTombstone(evaluation.id);
       onDeleted();
       onClose();
     }

@@ -23,7 +23,10 @@ import {
   Check,
 } from 'lucide-react';
 
-import { db } from '../../db';
+import {
+  deleteEvaluationWithTombstone,
+  saveEvaluation,
+} from '../../db';
 
 interface MoodWrappedMatrixProps {
   evaluations: EvaluationEntry[];
@@ -113,7 +116,7 @@ export const MoodWrappedMatrix: React.FC<MoodWrappedMatrixProps> = ({
 
   const handleDeleteEntry = async (id: string) => {
     if (confirm('¿Eliminar esta medición de la sensación diaria?')) {
-      await db.evaluations.delete(id);
+      await deleteEvaluationWithTombstone(id);
       onEvaluationDeleted?.();
     }
   };
@@ -128,9 +131,10 @@ export const MoodWrappedMatrix: React.FC<MoodWrappedMatrixProps> = ({
     if (!addEntryTarget || newScore === null) return;
     setIsSavingNew(true);
     try {
+      const now = Date.now();
       const isoDate = createIsoFromLocalDate(addEntryTarget.dateStr);
       const newEntry: EvaluationEntry = {
-        id: `mood-${Date.now()}`,
+        id: `mood-${now}`,
         topicId: DAILY_MOOD_TOPIC_ID,
         date: isoDate,
         items: [
@@ -146,9 +150,10 @@ export const MoodWrappedMatrix: React.FC<MoodWrappedMatrixProps> = ({
         totalWeight: 10,
         finalScore: newScore,
         notes: newNote.trim() || undefined,
-        createdAt: Date.now(),
+        createdAt: now,
+        updatedAt: now,
       };
-      await db.evaluations.add(newEntry);
+      await saveEvaluation(newEntry);
       if (newScore >= 7) {
         confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
       }
@@ -192,10 +197,12 @@ export const MoodWrappedMatrix: React.FC<MoodWrappedMatrixProps> = ({
               },
             ];
 
-      await db.evaluations.update(entryId, {
+      await saveEvaluation({
+        ...entry,
         finalScore: editScore,
         items: updatedItems,
         notes: editNote.trim() || undefined,
+        updatedAt: Date.now(),
       });
 
       setEditingEntryId(null);
