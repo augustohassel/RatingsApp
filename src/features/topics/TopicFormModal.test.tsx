@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { TopicFormModal } from './TopicFormModal';
-import { db } from '../../db';
+import {
+  db,
+  clearPendingLocalChanges,
+  hasPendingLocalChanges,
+  LOCAL_DATA_CHANGED_EVENT,
+} from '../../db';
 import { Topic } from '../../types';
 
 describe('TopicFormModal - Stepper de pesos e íconos dinámicos', () => {
@@ -22,6 +27,8 @@ describe('TopicFormModal - Stepper de pesos e íconos dinámicos', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     await db.topics.clear();
+    await db.tombstones.clear();
+    clearPendingLocalChanges();
   });
 
   it('renders criteria with stepper and increments/decrements weight within [1, 10]', async () => {
@@ -107,5 +114,134 @@ describe('TopicFormModal - Stepper de pesos e íconos dinámicos', () => {
     expect(savedTopics[0].name).toBe('Entrenamiento de Natación');
     expect(savedTopics[0].icon).toBe('Waves');
     expect(savedTopics[0].color).toBe('#10b981');
+    expect(savedTopics[0].isSystem).toBeUndefined();
+    expect(hasPendingLocalChanges()).toBe(true);
+  });
+
+  it('clears previous tombstone and emits local-data-changed via saveTopic when editing', async () => {
+    await db.topics.put(existingTopic);
+    await db.tombstones.put({
+      id: existingTopic.id,
+      entityType: 'topic',
+      deletedAt: 500,
+    });
+
+    const onLocalDataChanged = vi.fn();
+    window.addEventListener(LOCAL_DATA_CHANGED_EVENT, onLocalDataChanged);
+
+    const handleClose = vi.fn();
+    const handleSaved = vi.fn();
+
+    try {
+      render(
+        <TopicFormModal
+          topic={existingTopic}
+          onClose={handleClose}
+          onSaved={handleSaved}
+        />
+      );
+
+      const nameInput = screen.getByPlaceholderText(/Ej: Finanzas, Idiomas, Pareja/i);
+      fireEvent.change(nameInput, { target: { value: 'Natación Competitiva' } });
+
+      fireEvent.click(screen.getByRole('button', { name: /Guardar Cambios/i }));
+
+      await waitFor(() => {
+        expect(handleSaved).toHaveBeenCalledTimes(1);
+      });
+
+      expect(handleClose).toHaveBeenCalledTimes(1);
+      expect(await db.tombstones.get(existingTopic.id)).toBeUndefined();
+      expect(hasPendingLocalChanges()).toBe(true);
+      expect(onLocalDataChanged).toHaveBeenCalledTimes(1);
+
+      const updated = await db.topics.get(existingTopic.id);
+      expect(updated?.name).toBe('Natación Competitiva');
+    } finally {
+      window.removeEventListener(LOCAL_DATA_CHANGED_EVENT, onLocalDataChanged);
+    }
+  });
+
+  it('preserves isSystem: true when editing a system topic', async () => {
+    const systemTopic: Topic = {
+      ...existingTopic,
+      id: 'topic-daily-mood',
+      name: 'Sensación Diaria',
+      isSystem: true,
+    };
+    await db.topics.put(systemTopic);
+
+    const handleClose = vi.fn();
+    const handleSaved = vi.fn();
+
+    render(
+      <TopicFormModal
+        topic={systemTopic}
+        onClose={handleClose}
+        onSaved={handleSaved}
+      />
+    );
+
+    const nameInput = screen.getByPlaceholderText(/Ej: Finanzas, Idiomas, Pareja/i);
+    fireEvent.change(nameInput, { target: { value: 'Sensación Diaria Ajustada' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /Guardar Cambios/i }));
+
+    await waitFor(() => {
+      expect(handleSaved).toHaveBeenCalledTimes(1);
+    });
+
+    const updated = await db.topics.get(systemTopic.id);
+    expect(updated?.name).toBe('Sensación Diaria Ajustada');
+    expect(updated?.isSystem).toBe(true);
+  });
+
+  it('does not persist or clear tombstones when validation fails without named criteria', async () => {
+    const systemTopic: Topic = {
+      ...existingTopic,
+      id: 'topic-system-guard',
+      isSystem: true,
+      items: [{ id: 'crit-only', name: 'Energía', defaultWeight: 5 }],
+    };
+    await db.topics.put(systemTopic);
+    await db.tombstones.put({
+      id: systemTopic.id,
+      entityType: 'topic',
+      deletedAt: 900,
+    });
+
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const handleClose = vi.fn();
+    const handleSaved = vi.fn();
+
+    try {
+      render(
+        <TopicFormModal
+          topic={systemTopic}
+          onClose={handleClose}
+          onSaved={handleSaved}
+        />
+      );
+
+      const criterionInput = screen.getByPlaceholderText(/Nombre del criterio/i);
+      fireEvent.change(criterionInput, { target: { value: '   ' } });
+
+      fireEvent.click(screen.getByRole('button', { name: /Guardar Cambios/i }));
+
+      await waitFor(() => {
+        expect(alertSpy).toHaveBeenCalledWith('Debe tener al menos un criterio con nombre.');
+      });
+
+      expect(handleSaved).not.toHaveBeenCalled();
+      expect(handleClose).not.toHaveBeenCalled();
+      expect(hasPendingLocalChanges()).toBe(false);
+      expect(await db.tombstones.get(systemTopic.id)).toBeDefined();
+
+      const persisted = await db.topics.get(systemTopic.id);
+      expect(persisted?.isSystem).toBe(true);
+      expect(persisted?.items).toHaveLength(1);
+    } finally {
+      alertSpy.mockRestore();
+    }
   });
 });

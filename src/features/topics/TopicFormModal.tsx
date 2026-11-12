@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Topic, TopicItemDefinition } from '../../types';
-import { db } from '../../db';
+import { saveTopic } from '../../db';
 import { AutoResizeTextarea } from '../../components/common/AutoResizeTextarea';
 import { TopicIcon, AVAILABLE_TOPIC_ICONS } from '../../components/common/TopicIcon';
 import { X, Plus, Minus, Trash2, Check } from 'lucide-react';
@@ -95,15 +95,12 @@ export const TopicFormModal: React.FC<TopicFormModalProps> = ({
       color,
       icon,
       items: filteredItems,
+      ...(topic?.isSystem !== undefined ? { isSystem: topic.isSystem } : {}),
       createdAt: topic?.createdAt || Date.now(),
       updatedAt: Date.now(),
     };
 
-    if (isEditing) {
-      await db.topics.put(topicData);
-    } else {
-      await db.topics.add(topicData);
-    }
+    await saveTopic(topicData);
 
     onSaved();
     onClose();
