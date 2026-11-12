@@ -38,6 +38,15 @@ export interface EvaluationEntry {
   finalScore: number; // Promedio ponderado final (ej: 8.20)
   notes?: string; // Comentarios / reflexiones personales
   createdAt: number;
+  updatedAt?: number;
+}
+
+export type TombstoneEntityType = 'topic' | 'evaluation';
+
+export interface Tombstone {
+  id: string;
+  entityType: TombstoneEntityType;
+  deletedAt: number;
 }
 
 export interface DailyAggregatedScore {
@@ -60,10 +69,11 @@ export interface MonthlyAverage {
 }
 
 export interface BackupData {
-  version: number;
+  version: number; // 1 (legacy) o 2 (con updatedAt y tombstones)
   exportedAt: string;
   topics: Topic[];
   evaluations: EvaluationEntry[];
+  tombstones?: Tombstone[];
 }
 
 export interface ChatDraftEvaluationItem {

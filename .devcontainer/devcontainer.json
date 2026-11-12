@@ -7,25 +7,44 @@
   "mounts": [
     "source=${localEnv:USERPROFILE}/Documents/Personal/AgentToolkit/plugins,target=/root/.gemini/config/plugins,type=bind,consistency=cached"
   ],
-  "forwardPorts": [5173],
+  "forwardPorts": [5173, 4173],
   "portsAttributes": {
     "5173": {
       "label": "RatingsApp Vite Dev Server",
       "onAutoForward": "openPreview"
+    },
+    "4173": {
+      "label": "RatingsApp Vite Preview Server",
+      "onAutoForward": "notify"
     }
+  },
+  "remoteEnv": {
+    "GITHUB_PERSONAL_ACCESS_TOKEN": "${localEnv:GITHUB_PERSONAL_ACCESS_TOKEN}",
+    "GEMINI_API_KEY": "${localEnv:GEMINI_API_KEY}"
   },
   "customizations": {
     "vscode": {
       "settings": {
+        "files.eol": "\n",
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "esbenp.prettier-vscode",
-        "typescript.tsdk": "node_modules/typescript/lib"
+        "typescript.tsdk": "node_modules/typescript/lib",
+        "[terraform]": {
+          "editor.defaultFormatter": "hashicorp.terraform",
+          "editor.formatOnSave": true
+        },
+        "[terraform-vars]": {
+          "editor.defaultFormatter": "hashicorp.terraform",
+          "editor.formatOnSave": true
+        }
       },
       "extensions": [
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "bradlc.vscode-tailwindcss",
-        "google.google-antigravity"
+        "google.google-antigravity",
+        "hashicorp.terraform",
+        "hashicorp.hcl"
       ]
     }
   },

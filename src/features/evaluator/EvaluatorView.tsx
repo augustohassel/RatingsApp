@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import confetti from 'canvas-confetti';
-import { db } from '../../db';
+import { db, saveEvaluation } from '../../db';
 import {
   calculateWeightedRating,
   RawItemInput,
@@ -139,8 +139,9 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
         editingEvaluation ? editingEvaluation.date : undefined
       );
 
+      const now = Date.now();
       if (editingEvaluation) {
-        await db.evaluations.put({
+        await saveEvaluation({
           id: editingEvaluation.id,
           topicId: currentTopic.id,
           date: isoDate,
@@ -148,11 +149,12 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
           totalWeight: calculation.totalWeight,
           finalScore: calculation.finalScore,
           notes: notes.trim(),
-          createdAt: editingEvaluation.createdAt || Date.now(),
+          createdAt: editingEvaluation.createdAt || now,
+          updatedAt: now,
         });
       } else {
-        const evalId = `eval-${Date.now()}`;
-        await db.evaluations.add({
+        const evalId = `eval-${now}`;
+        await saveEvaluation({
           id: evalId,
           topicId: currentTopic.id,
           date: isoDate,
@@ -160,7 +162,8 @@ export const EvaluatorView: React.FC<EvaluatorViewProps> = ({
           totalWeight: calculation.totalWeight,
           finalScore: calculation.finalScore,
           notes: notes.trim(),
-          createdAt: Date.now(),
+          createdAt: now,
+          updatedAt: now,
         });
       }
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { initializeDatabase } from './db';
+import { syncManager } from './services/cloudSync/syncService';
 import { Header } from './components/layout/Header';
 import { BottomNav, NavTab } from './components/layout/BottomNav';
 import { DashboardView } from './features/dashboard/DashboardView';
@@ -20,9 +21,18 @@ export const App: React.FC = () => {
   const [isDbReady, setIsDbReady] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    let cleanupListeners: (() => void) | undefined;
     initializeDatabase().then(() => {
+      if (cancelled) return;
       setIsDbReady(true);
+      cleanupListeners = syncManager.setupLifecycleListeners();
+      syncManager.triggerOpportunisticSync(800);
     });
+    return () => {
+      cancelled = true;
+      cleanupListeners?.();
+    };
   }, []);
 
   const handleStartEvaluation = (topicId: string) => {
