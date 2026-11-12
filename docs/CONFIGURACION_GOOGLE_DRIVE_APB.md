@@ -73,6 +73,9 @@ flowchart LR
 2. **Branding / OAuth Consent Screen**:
    - **App name**: `RatingsApp`
    - **User support email**: tu email.
+   - **Application home page**: `https://ratings.hasselpunk.com`
+   - **Application privacy policy link**: `https://ratings.hasselpunk.com/privacy.html` *(servida estáticamente desde `public/privacy.html`)*
+   - **Authorized domains**: `hasselpunk.com`
    - **Audience (User Type)**: **External** (para que cualquier cuenta `@gmail.com` pueda usar la app en producción).
    - **Developer contact information**: tu email.
 3. **Data Access (Scopes)**:
